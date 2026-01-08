@@ -4,13 +4,21 @@
  * Een React applicatie voor het beheren en bekijken van lesmethodes
  * per school, vak, niveau en uitgeverij.
  *
- * @version 2.0.0
+ * Data wordt gesynchroniseerd via Google Sheets.
+ *
+ * @version 3.0.0
  */
+
+// ============================================================================
+// CONFIGURATIE - PAS DEZE URL AAN NA DEPLOYMENT VAN GOOGLE APPS SCRIPT
+// ============================================================================
+const SCRIPT_URL = 'PLAK_HIER_JE_GOOGLE_APPS_SCRIPT_URL';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1cji411XT14BS95ulWMjOYg0VzxATdAYt_qGhctiiXf4';
 
 // ============================================================================
 // REACT HOOKS (via global React object)
 // ============================================================================
-const { useState, useMemo, useEffect } = React;
+const { useState, useMemo, useEffect, useCallback } = React;
 
 // ============================================================================
 // LUCIDE ICONS - Custom React components van Lucide SVG icons
@@ -58,6 +66,9 @@ const ArrowLeft = createIcon('arrow-left');
 const Edit3 = createIcon('edit-3');
 const Info = createIcon('info');
 const History = createIcon('history');
+const RefreshCw = createIcon('refresh-cw');
+const Loader2 = createIcon('loader-2');
+const ExternalLink = createIcon('external-link');
 
 // ============================================================================
 // CONFIGURATIE DATA
@@ -93,6 +104,17 @@ const passwords = {
 const vakken = ['Wiskunde', 'Taal', 'Spelling', 'Schrift', 'Frans', 'Wero', 'Godsdienst', 'Begrijpend lezen', 'SOVA', 'Motoriek'];
 const vakBases = ['wiskunde', 'taal', 'spelling', 'schrift', 'frans', 'wero', 'godsdienst', 'begrijpend_lezen', 'sova', 'motoriek'];
 
+// Mapping van display labels naar interne keys
+const vakToBase = {
+  'Wiskunde': 'wiskunde', 'Taal': 'taal', 'Spelling': 'spelling', 'Schrift': 'schrift',
+  'Frans': 'frans', 'Wero': 'wero', 'Godsdienst': 'godsdienst', 'Begrijpend lezen': 'begrijpend_lezen',
+  'SOVA': 'sova', 'Motoriek': 'motoriek'
+};
+
+const niveauToBase = {
+  'P': 'p', 'K': 'k', 'L1': 'l1', 'L2-6': 'l2_6', 'L2-3': 'l2_3', 'L4-6': 'l4_6'
+};
+
 // Niveau labels voor weergave
 const niveauLabels = { p: 'P', k: 'K', l1: 'L1', l2_6: 'L2-6', l2_3: 'L2-3', l4_6: 'L4-6' };
 
@@ -104,16 +126,9 @@ const niveauOrder = { p: 0, k: 1, l1: 2, l2_3: 3, l4_6: 4, l2_6: 5 };
 
 // Icon mapping per vak
 const vakIcons = {
-  Wiskunde: Calculator,
-  Taal: Languages,
-  Spelling: FileText,
-  Schrift: Edit3,
-  Frans: Flag,
-  Wero: Globe,
-  Godsdienst: BookOpen,
-  'Begrijpend lezen': Brain,
-  SOVA: Users,
-  Motoriek: Activity
+  Wiskunde: Calculator, Taal: Languages, Spelling: FileText, Schrift: Edit3,
+  Frans: Flag, Wero: Globe, Godsdienst: BookOpen, 'Begrijpend lezen': Brain,
+  SOVA: Users, Motoriek: Activity
 };
 
 // Kleuren per vak [bg, border, text, icon-bg]
@@ -149,21 +164,6 @@ const uitgKleuren = {
   'Onbekend': ['bg-slate-50', 'border-slate-200', 'text-slate-700', 'bg-slate-500']
 };
 
-// Default methode -> uitgeverij mapping
-const defMU = {
-  "Reken Maar": "Van In", "Katapult": "Die Keure", "Wiskanjers": "Plantyn", "Kadet": "Die Keure",
-  "Veilig leren lezen": "Zwijsen", "Talent": "Van In", "Confetti": "Die Keure", "Dag Jules": "Zwijsen",
-  "Tijd voor taal accent": "Van In", "Talent+": "Van In", "Taalkanjers": "Plantyn", "Pistache": "Plantyn",
-  "Verrekijker": "Die Keure", "Labo": "Die Keure", "Tekstduikers": "Van In", "Nieuwsbegrip": "CED-Groep",
-  "Wouw": "Die Keure", "Wereldkanjers": "Plantyn", "Mikado": "Plantyn", "Ankers": "Van In",
-  "Tuin van Heden": "Die Keure", "Sterren aan de hemel": "Plantyn", "Jezus leeft": "Licap",
-  "TOV": "Licap", "Land in zicht": "Plantyn", "De Geluksvogels": "Lannoo", "Kat en Hond": "Zwijsen",
-  "Loeloe en Pompom": "Zwijsen", "Cas en Lisa": "Die Keure", "Junglemaatjes": "Die Keure",
-  "Cirkelen": "ABIMO", "Krullenbol": "Die Keure", "Karakter": "Van In", "Zouff": "Van In",
-  "Ik lees met Hup": "Malmberg", "Kwartierlezen": "Malmberg", "Luna": "Die Keure",
-  "Dag LoeLoe": "Zwijsen", "Dag Pompom": "Zwijsen", "Flonflon": "Zwijsen", "Rekensprong": "Die Keure"
-};
-
 // ============================================================================
 // HELPER FUNCTIES
 // ============================================================================
@@ -181,80 +181,6 @@ function emptyV() {
   return o;
 }
 
-// Initiële data voor enkele scholen
-const initData = {
-  "De Boomhut": { ...emptyV(), schrift: { l1: ["Luna"], l2_3: ["Luna"], l4_6: [] } },
-  "Ten Parke": {
-    wiskunde: { p: [], k: [], l1: [], l2_6: ["Reken Maar"] },
-    taal: { p: ["Dag Jules"], k: ["Confetti"], l1: ["Veilig leren lezen"], l2_6: ["Talent"] },
-    spelling: { p: [], k: [], l1: ["Tijd voor taal accent"], l2_6: ["Tijd voor taal accent"] },
-    schrift: { l1: [], l2_3: [], l4_6: [] },
-    frans: { p: [], k: [], l1: [], l2_6: ["Zouff"] },
-    wero: { p: [], k: [], l1: ["Wouw"], l2_6: ["Wouw"] },
-    godsdienst: { p: ["Sterren aan de hemel"], k: ["Sterren aan de hemel"], l1: ["Sterren aan de hemel"], l2_6: ["Sterren aan de hemel"] },
-    begrijpend_lezen: { p: [], k: [], l1: [], l2_6: ["Talent+", "Tekstduikers"] },
-    sova: { p: [], k: ["Kat en Hond"], l1: [], l2_6: ["De Geluksvogels"] },
-    motoriek: { p: [], k: ["Krullenbol"], l1: ["Karakter"], l2_6: ["Karakter"] }
-  },
-  "De Leeuw": {
-    wiskunde: { p: [], k: [], l1: [], l2_6: ["Katapult"] },
-    taal: { p: [], k: [], l1: [], l2_6: ["Talent"] },
-    spelling: { p: [], k: [], l1: [], l2_6: ["Tijd voor taal accent"] },
-    schrift: { l1: [], l2_3: [], l4_6: [] },
-    frans: { p: [], k: [], l1: [], l2_6: [] },
-    wero: { p: [], k: [], l1: [], l2_6: ["Wereldkanjers"] },
-    godsdienst: { p: [], k: [], l1: [], l2_6: ["Sterren aan de hemel"] },
-    begrijpend_lezen: { p: [], k: [], l1: [], l2_6: [] },
-    sova: { p: [], k: [], l1: [], l2_6: [] },
-    motoriek: { p: [], k: ["Krullenbol"], l1: [], l2_6: [] }
-  },
-  "De Tweesprong": {
-    wiskunde: { p: [], k: [], l1: [], l2_6: ["Katapult"] },
-    taal: { p: ["Dag Jules"], k: ["Pistache"], l1: ["Taalkanjers"], l2_6: ["Taalkanjers"] },
-    spelling: { p: [], k: [], l1: ["Taalkanjers"], l2_6: ["Taalkanjers"] },
-    schrift: { l1: [], l2_3: [], l4_6: [] },
-    frans: { p: [], k: [], l1: [], l2_6: [] },
-    wero: { p: [], k: [], l1: [], l2_6: ["Wereldkanjers"] },
-    godsdienst: { p: [], k: ["TOV"], l1: ["Jezus leeft", "Sterren aan de hemel"], l2_6: ["Jezus leeft", "Sterren aan de hemel"] },
-    begrijpend_lezen: { p: [], k: [], l1: [], l2_6: [] },
-    sova: { p: [], k: [], l1: [], l2_6: [] },
-    motoriek: { p: [], k: ["Krullenbol"], l1: ["Karakter"], l2_6: ["Karakter"] }
-  },
-  "'t Vlot": {
-    wiskunde: { p: [], k: [], l1: [], l2_6: ["Katapult", "Wiskanjers"] },
-    taal: { p: [], k: [], l1: ["Veilig leren lezen"], l2_6: ["Taalkanjers"] },
-    spelling: { p: [], k: [], l1: ["Taalkanjers"], l2_6: ["Taalkanjers"] },
-    schrift: { l1: [], l2_3: [], l4_6: [] },
-    frans: { p: [], k: [], l1: [], l2_6: [] },
-    wero: { p: [], k: [], l1: [], l2_6: ["Wereldkanjers"] },
-    godsdienst: { p: [], k: [], l1: [], l2_6: ["TOV"] },
-    begrijpend_lezen: { p: [], k: [], l1: [], l2_6: [] },
-    sova: { p: [], k: [], l1: [], l2_6: [] },
-    motoriek: { p: [], k: ["Krullenbol"], l1: [], l2_6: ["Karakter"] }
-  },
-  "De Schatkist": {
-    wiskunde: { p: [], k: [], l1: [], l2_6: ["Kadet"] },
-    taal: { p: [], k: [], l1: ["Ik lees met Hup"], l2_6: ["Verrekijker", "Labo", "Kwartierlezen"] },
-    spelling: { p: [], k: [], l1: [], l2_6: ["Verrekijker", "Labo"] },
-    schrift: { l1: [], l2_3: [], l4_6: [] },
-    frans: { p: [], k: [], l1: [], l2_6: [] },
-    wero: { p: [], k: [], l1: ["Wereldkanjers", "Labo"], l2_6: ["Wereldkanjers"] },
-    godsdienst: { p: [], k: ["Sterren aan de hemel"], l1: [], l2_6: ["Sterren aan de hemel"] },
-    begrijpend_lezen: { p: [], k: [], l1: [], l2_6: ["Verrekijker", "Tekstduikers"] },
-    sova: { p: [], k: ["Cas en Lisa"], l1: ["Cirkelen"], l2_6: ["Cirkelen"] },
-    motoriek: { p: [], k: ["Krullenbol"], l1: ["Karakter"], l2_6: ["Karakter"] }
-  }
-};
-
-/**
- * Creeer complete dataset met initiële data en lege entries voor overige scholen
- */
-function createData() {
-  const d = { ...initData };
-  schools.forEach((s) => { if (!d[s]) d[s] = emptyV(); });
-  return d;
-}
-
 /**
  * Creeer lege dataset voor alle scholen
  */
@@ -262,6 +188,97 @@ function createEmpty() {
   const d = {};
   schools.forEach((s) => { d[s] = emptyV(); });
   return d;
+}
+
+/**
+ * Converteer Google Sheets data naar app formaat
+ */
+function convertSheetsToAppData(methodesArray) {
+  const data = {
+    '2025-2026': createEmpty(),
+    '2026-2027': createEmpty()
+  };
+
+  methodesArray.forEach(row => {
+    const school = row.School;
+    const jaar = row.Schooljaar;
+    const vak = vakToBase[row.Vak] || row.Vak?.toLowerCase();
+    const niveau = niveauToBase[row.Niveau] || row.Niveau?.toLowerCase();
+    const methode = row.Methode;
+
+    if (school && jaar && vak && niveau && methode && data[jaar] && data[jaar][school]) {
+      if (!data[jaar][school][vak]) {
+        data[jaar][school][vak] = {};
+      }
+      if (!data[jaar][school][vak][niveau]) {
+        data[jaar][school][vak][niveau] = [];
+      }
+      if (!data[jaar][school][vak][niveau].includes(methode)) {
+        data[jaar][school][vak][niveau].push(methode);
+      }
+    }
+  });
+
+  return data;
+}
+
+/**
+ * Converteer uitgeverijen data naar app formaat
+ */
+function convertUitgeverijen(uitgArray) {
+  const mu = {};
+  uitgArray.forEach(row => {
+    if (row.Methode && row.Uitgeverij) {
+      mu[row.Methode] = row.Uitgeverij;
+    }
+  });
+  return mu;
+}
+
+// ============================================================================
+// API FUNCTIES
+// ============================================================================
+
+/**
+ * Check of de API URL is geconfigureerd
+ */
+function isApiConfigured() {
+  return SCRIPT_URL && !SCRIPT_URL.includes('PLAK_HIER');
+}
+
+/**
+ * Fetch data van Google Sheets
+ */
+async function fetchFromSheets(action) {
+  if (!isApiConfigured()) {
+    throw new Error('Google Apps Script URL niet geconfigureerd');
+  }
+
+  const response = await fetch(`${SCRIPT_URL}?action=${action}`);
+  if (!response.ok) {
+    throw new Error(`HTTP error: ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Post data naar Google Sheets
+ */
+async function postToSheets(data) {
+  if (!isApiConfigured()) {
+    throw new Error('Google Apps Script URL niet geconfigureerd');
+  }
+
+  const response = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error: ${response.status}`);
+  }
+  return response.json();
 }
 
 // ============================================================================
@@ -291,7 +308,6 @@ function Login({ onLogin }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-6">
       <div className="w-full max-w-md">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-xl mb-6">
             <BookOpen className="w-10 h-10 text-blue-600" />
@@ -300,14 +316,12 @@ function Login({ onLogin }) {
           <p className="text-blue-100">Scholengroep Sint-Rembert</p>
         </div>
 
-        {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-4">
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Lock className="w-5 h-5 text-blue-600" />
             Aanmelden
           </h2>
 
-          {/* School selectie */}
           <select
             value={sel}
             onChange={(e) => { setSel(e.target.value); setErr(''); }}
@@ -317,7 +331,6 @@ function Login({ onLogin }) {
             {schools.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
 
-          {/* Wachtwoord */}
           <div className="relative">
             <input
               type={show ? 'text' : 'password'}
@@ -336,7 +349,6 @@ function Login({ onLogin }) {
             </button>
           </div>
 
-          {/* Error message */}
           {err && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
@@ -344,7 +356,6 @@ function Login({ onLogin }) {
             </div>
           )}
 
-          {/* Login button */}
           <button
             onClick={handleLogin}
             className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 hover:from-blue-700 hover:to-indigo-700 transition-all"
@@ -353,13 +364,26 @@ function Login({ onLogin }) {
             Inloggen
           </button>
         </div>
+
+        {/* API Status */}
+        <div className="mt-4 text-center">
+          {isApiConfigured() ? (
+            <span className="text-green-200 text-sm flex items-center justify-center gap-1">
+              <Cloud className="w-4 h-4" /> Verbonden met Google Sheets
+            </span>
+          ) : (
+            <span className="text-yellow-200 text-sm flex items-center justify-center gap-1">
+              <AlertCircle className="w-4 h-4" /> Offline modus (alleen lokale opslag)
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 // ============================================================================
-// CARD COMPONENT - Voor weergave van een methode
+// CARD COMPONENT
 // ============================================================================
 
 function Card({ m, n, v, u, cnt, mu, showCnt }) {
@@ -398,47 +422,129 @@ function App() {
   const [niv, setNiv] = useState('alle');
   const [jaar, setJaar] = useState('2025-2026');
   const [toast, setToast] = useState(null);
-  const [data, setData] = useState({ '2025-2026': createData(), '2026-2027': createEmpty() });
-  const [mu, setMu] = useState(defMU);
+  const [data, setData] = useState({ '2025-2026': createEmpty(), '2026-2027': createEmpty() });
+  const [mu, setMu] = useState({});
   const [modal, setModal] = useState(null);
   const [hist, setHist] = useState([]);
-  const [online, setOnline] = useState(true);
+  const [online, setOnline] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState(null);
   const [addNaam, setAddNaam] = useState('');
   const [addUitg, setAddUitg] = useState('');
   const [addErr, setAddErr] = useState('');
   const [form, setForm] = useState(null);
   const [formChanged, setFormChanged] = useState(false);
 
-  // Huidige data voor geselecteerd schooljaar
   const cur = data[jaar];
-
-  // Gesorteerde lijsten
   const mList = useMemo(() => Object.keys(mu).sort(), [mu]);
   const uList = useMemo(() => [...new Set(Object.values(mu))].sort(), [mu]);
 
-  // Laad data uit localStorage bij opstarten
-  useEffect(() => {
+  // ============================================================================
+  // DATA LADEN
+  // ============================================================================
+
+  /**
+   * Laad data van Google Sheets
+   */
+  const loadFromCloud = useCallback(async () => {
+    if (!isApiConfigured()) return false;
+
+    setLoading(true);
     try {
-      const stored = localStorage.getItem('methodes-v23');
-      if (stored) {
-        const p = JSON.parse(stored);
-        if (p.data) {
-          setData({
-            '2025-2026': { ...createData(), ...p.data['2025-2026'] },
-            '2026-2027': { ...createEmpty(), ...p.data['2026-2027'] }
-          });
-        }
-        if (p.mu) setMu({ ...defMU, ...p.mu });
-        if (p.hist) setHist(p.hist);
-        setOnline(true);
+      const result = await fetchFromSheets('getAll');
+
+      if (result.error) {
+        throw new Error(result.error);
       }
+
+      // Converteer en sla op
+      const newData = convertSheetsToAppData(result.methodes || []);
+      const newMu = convertUitgeverijen(result.uitgeverijen || []);
+      const newHist = (result.log || []).map((l, i) => ({
+        id: i,
+        timestamp: l.Timestamp,
+        school: l.User,
+        action: l.Action,
+        details: l.Details
+      }));
+
+      setData(newData);
+      setMu(newMu);
+      setHist(newHist);
+      setOnline(true);
+      setLastSync(new Date());
+
+      // Cache lokaal
+      localStorage.setItem('methodes-cache', JSON.stringify({
+        data: newData,
+        mu: newMu,
+        hist: newHist,
+        lastSync: new Date().toISOString()
+      }));
+
+      return true;
     } catch (e) {
-      console.error('Fout bij laden data:', e);
+      console.error('Fout bij laden van cloud:', e);
       setOnline(false);
+      return false;
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // Auto-hide toast na 3 seconden
+  /**
+   * Laad data uit localStorage cache
+   */
+  const loadFromCache = useCallback(() => {
+    try {
+      const cached = localStorage.getItem('methodes-cache');
+      if (cached) {
+        const p = JSON.parse(cached);
+        if (p.data) setData(p.data);
+        if (p.mu) setMu(p.mu);
+        if (p.hist) setHist(p.hist);
+        if (p.lastSync) setLastSync(new Date(p.lastSync));
+        return true;
+      }
+    } catch (e) {
+      console.error('Fout bij laden cache:', e);
+    }
+    return false;
+  }, []);
+
+  /**
+   * Initial load: probeer cloud, fall back naar cache
+   */
+  useEffect(() => {
+    async function init() {
+      setLoading(true);
+      // Laad eerst cache voor snelle weergave
+      loadFromCache();
+      // Dan probeer cloud sync
+      if (isApiConfigured()) {
+        await loadFromCloud();
+      }
+      setLoading(false);
+    }
+    init();
+  }, [loadFromCache, loadFromCloud]);
+
+  /**
+   * Handmatige sync
+   */
+  const handleSync = async () => {
+    setSyncing(true);
+    const success = await loadFromCloud();
+    setSyncing(false);
+    if (success) {
+      setToast({ m: 'Gesynchroniseerd!', t: 's' });
+    } else {
+      setToast({ m: 'Synchronisatie mislukt', t: 'e' });
+    }
+  };
+
+  // Auto-hide toast
   useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(null), 3000);
@@ -446,7 +552,7 @@ function App() {
     }
   }, [toast]);
 
-  // Init edit form wanneer edit modus wordt geactiveerd
+  // Init edit form
   useEffect(() => {
     if (edit && school) {
       setForm(JSON.parse(JSON.stringify(cur[school] || emptyV())));
@@ -454,100 +560,64 @@ function App() {
     }
   }, [edit, school, cur]);
 
-  /**
-   * Sla data op in localStorage
-   */
-  async function save(nd, nm, h) {
-    if (nd) setData(nd);
-    if (nm) setMu(nm);
-    const nh = h ? [h, ...hist].slice(0, 100) : hist;
-    if (h) setHist(nh);
+  // ============================================================================
+  // DATA OPSLAAN
+  // ============================================================================
 
-    try {
-      localStorage.setItem('methodes-v23', JSON.stringify({
-        data: nd || data,
-        mu: nm || mu,
-        hist: nh
-      }));
-      setOnline(true);
-      setToast({ m: 'Opgeslagen!', t: 's' });
-      return true;
-    } catch (e) {
-      console.error('Fout bij opslaan:', e);
-      setOnline(false);
-      setToast({ m: 'Fout bij opslaan', t: 'e' });
-      return false;
+  /**
+   * Sla data op (cloud + lokaal)
+   */
+  async function saveToCloud(schoolName, jaarStr, methodes) {
+    if (!isApiConfigured()) {
+      throw new Error('API niet geconfigureerd');
     }
+
+    const result = await postToSheets({
+      action: 'saveMethodes',
+      school: schoolName,
+      jaar: jaarStr,
+      methodes: methodes,
+      user: user
+    });
+
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    return result;
   }
 
-  // Tel aantal scholen per methode/vak combinatie
-  const mCnt = useMemo(() => {
-    const c = {};
-    schools.forEach((s) => {
-      vakBases.forEach((vb) => {
-        getNiveaus(vb).forEach((n) => {
-          const arr = cur[s]?.[vb]?.[n] || [];
-          arr.forEach((m) => {
-            c[`${vb}|${m}`] = (c[`${vb}|${m}`] || 0) + 1;
-          });
-        });
-      });
+  /**
+   * Voeg nieuwe methode/uitgeverij toe
+   */
+  async function addUitgeverijToCloud(methode, uitgeverij) {
+    if (!isApiConfigured()) {
+      // Alleen lokaal opslaan
+      const newMu = { ...mu, [methode]: uitgeverij };
+      setMu(newMu);
+      const cached = JSON.parse(localStorage.getItem('methodes-cache') || '{}');
+      cached.mu = newMu;
+      localStorage.setItem('methodes-cache', JSON.stringify(cached));
+      return { success: true };
+    }
+
+    const result = await postToSheets({
+      action: 'addUitgeverij',
+      methode: methode,
+      uitgeverij: uitgeverij,
+      user: user
     });
-    return c;
-  }, [cur]);
 
-  // Methodes gegroepeerd per vak
-  const perVak = useMemo(() => {
-    const r = {};
-    const ts = school ? [school] : schools;
+    if (result.error) {
+      throw new Error(result.error);
+    }
 
-    vakken.forEach((v, i) => {
-      const map = {};
-      const vn = getNiveaus(vakBases[i]);
-      const fn = niv === 'alle' ? vn : (vn.includes(niv) ? [niv] : []);
+    // Update lokaal
+    const newMu = { ...mu, [methode]: uitgeverij };
+    setMu(newMu);
 
-      ts.forEach((s) => {
-        fn.forEach((n) => {
-          const arr = cur[s]?.[vakBases[i]]?.[n] || [];
-          arr.forEach((m) => {
-            const k = `${m}|${n}`;
-            if (!map[k]) map[k] = { m, n, s: [] };
-            if (!map[k].s.includes(s)) map[k].s.push(s);
-          });
-        });
-      });
-      r[v] = map;
-    });
-    return r;
-  }, [cur, niv, school]);
-
-  // Methodes gegroepeerd per uitgeverij
-  const perUitg = useMemo(() => {
-    const map = {};
-    const ts = school ? [school] : schools;
-
-    ts.forEach((s) => {
-      vakBases.forEach((vb, i) => {
-        const vn = getNiveaus(vb);
-        const fn = niv === 'alle' ? vn : (vn.includes(niv) ? [niv] : []);
-
-        fn.forEach((n) => {
-          const arr = cur[s]?.[vb]?.[n] || [];
-          arr.forEach((m) => {
-            const u = mu[m] || 'Onbekend';
-            if (!map[u]) map[u] = {};
-            const k = `${m}|${vakken[i]}|${n}`;
-            if (!map[u][k]) map[u][k] = { m, v: vakken[i], n, s: [] };
-            if (!map[u][k].s.includes(s)) map[u][k].s.push(s);
-          });
-        });
-      });
-    });
-    return map;
-  }, [cur, niv, school, mu]);
-
-  // Toon login als niet ingelogd
-  if (!user) return <Login onLogin={setUser} />;
+    return result;
+  }
 
   // ============================================================================
   // EVENT HANDLERS
@@ -577,18 +647,34 @@ function App() {
   }
 
   async function saveForm() {
-    const h = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      school: user,
-      action: 'Bijgewerkt',
-      details: school,
-      jaar
-    };
-    const newData = JSON.parse(JSON.stringify(data));
-    newData[jaar][school] = form;
-    if (await save(newData, null, h)) {
+    setSyncing(true);
+    try {
+      if (isApiConfigured()) {
+        await saveToCloud(school, jaar, form);
+      }
+
+      // Update lokale state
+      const newData = JSON.parse(JSON.stringify(data));
+      newData[jaar][school] = form;
+      setData(newData);
+
+      // Update cache
+      const cached = JSON.parse(localStorage.getItem('methodes-cache') || '{}');
+      cached.data = newData;
+      localStorage.setItem('methodes-cache', JSON.stringify(cached));
+
       setFormChanged(false);
+      setToast({ m: 'Opgeslagen!', t: 's' });
+
+      // Refresh data van server
+      if (isApiConfigured()) {
+        await loadFromCloud();
+      }
+    } catch (e) {
+      console.error('Fout bij opslaan:', e);
+      setToast({ m: 'Fout: ' + e.message, t: 'e' });
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -598,22 +684,24 @@ function App() {
     if (!addUitg) { setAddErr('Kies uitgeverij'); return; }
     if (mu[tn]) { setAddErr('Bestaat al'); return; }
 
-    const h = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      school: user,
-      action: 'Methode toegevoegd',
-      details: tn,
-      jaar
-    };
-    const newMu = { ...mu, [tn]: addUitg };
-
-    if (await save(null, newMu, h)) {
+    setSyncing(true);
+    try {
+      await addUitgeverijToCloud(tn, addUitg);
       setModal(null);
       setAddNaam('');
       setAddUitg('');
       setAddErr('');
       setToast({ m: 'Toegevoegd!', t: 's' });
+
+      // Refresh
+      if (isApiConfigured()) {
+        await loadFromCloud();
+      }
+    } catch (e) {
+      console.error('Fout bij toevoegen:', e);
+      setAddErr('Fout: ' + e.message);
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -641,7 +729,74 @@ function App() {
     setToast({ m: 'Gedownload!', t: 's' });
   }
 
-  // View buttons configuratie
+  // ============================================================================
+  // COMPUTED VALUES
+  // ============================================================================
+
+  const mCnt = useMemo(() => {
+    const c = {};
+    schools.forEach((s) => {
+      vakBases.forEach((vb) => {
+        getNiveaus(vb).forEach((n) => {
+          const arr = cur[s]?.[vb]?.[n] || [];
+          arr.forEach((m) => {
+            c[`${vb}|${m}`] = (c[`${vb}|${m}`] || 0) + 1;
+          });
+        });
+      });
+    });
+    return c;
+  }, [cur]);
+
+  const perVak = useMemo(() => {
+    const r = {};
+    const ts = school ? [school] : schools;
+
+    vakken.forEach((v, i) => {
+      const map = {};
+      const vn = getNiveaus(vakBases[i]);
+      const fn = niv === 'alle' ? vn : (vn.includes(niv) ? [niv] : []);
+
+      ts.forEach((s) => {
+        fn.forEach((n) => {
+          const arr = cur[s]?.[vakBases[i]]?.[n] || [];
+          arr.forEach((m) => {
+            const k = `${m}|${n}`;
+            if (!map[k]) map[k] = { m, n, s: [] };
+            if (!map[k].s.includes(s)) map[k].s.push(s);
+          });
+        });
+      });
+      r[v] = map;
+    });
+    return r;
+  }, [cur, niv, school]);
+
+  const perUitg = useMemo(() => {
+    const map = {};
+    const ts = school ? [school] : schools;
+
+    ts.forEach((s) => {
+      vakBases.forEach((vb, i) => {
+        const vn = getNiveaus(vb);
+        const fn = niv === 'alle' ? vn : (vn.includes(niv) ? [niv] : []);
+
+        fn.forEach((n) => {
+          const arr = cur[s]?.[vb]?.[n] || [];
+          arr.forEach((m) => {
+            const u = mu[m] || 'Onbekend';
+            if (!map[u]) map[u] = {};
+            const k = `${m}|${vakken[i]}|${n}`;
+            if (!map[u][k]) map[u][k] = { m, v: vakken[i], n, s: [] };
+            if (!map[u][k].s.includes(s)) map[u][k].s.push(s);
+          });
+        });
+      });
+    });
+    return map;
+  }, [cur, niv, school, mu]);
+
+  // View buttons
   const viewButtons = school
     ? [['vak', 'Per vak'], ['uitgeverij', 'Per uitgeverij'], ['methode', 'Per methode']]
     : [['vak', 'Per vak'], ['cards', 'Per school'], ['uitgeverij', 'Per uitgeverij'], ['methode', 'Per methode'], ['table', 'Tabel']];
@@ -652,9 +807,24 @@ function App() {
   // RENDER
   // ============================================================================
 
+  // Loading screen
+  if (loading && !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center">
+        <div className="text-center text-white">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+          <p>Data laden...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Login screen
+  if (!user) return <Login onLogin={setUser} />;
+
   return (
     <div>
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast && (
         <div className={`${toast.t === 's' ? 'bg-green-600' : 'bg-red-600'} fixed top-4 right-4 z-50 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3`}>
           {toast.t === 's' ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
@@ -702,8 +872,10 @@ function App() {
               )}
               <button
                 onClick={addNewMethode}
-                className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors"
+                disabled={syncing}
+                className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
+                {syncing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
                 Toevoegen
               </button>
             </div>
@@ -761,12 +933,12 @@ function App() {
                 <p className="text-center py-12 text-slate-500">Nog geen wijzigingen</p>
               ) : (
                 <div className="space-y-3">
-                  {hist.map((h) => (
-                    <div key={h.id} className="bg-slate-50 rounded-xl p-4">
+                  {hist.map((h, idx) => (
+                    <div key={h.id || idx} className="bg-slate-50 rounded-xl p-4">
                       <div className="flex justify-between mb-2">
                         <span className="font-medium">{h.school}</span>
                         <span className="text-xs text-slate-500">
-                          {new Date(h.timestamp).toLocaleDateString('nl-BE')}
+                          {h.timestamp ? new Date(h.timestamp).toLocaleDateString('nl-BE') : ''}
                         </span>
                       </div>
                       <p className="text-sm">{h.action}</p>
@@ -787,10 +959,7 @@ function App() {
           <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-4">
               {school && (
-                <button
-                  onClick={() => { setSchool(null); setEdit(false); }}
-                  className="p-2 hover:bg-slate-100 rounded-lg"
-                >
+                <button onClick={() => { setSchool(null); setEdit(false); }} className="p-2 hover:bg-slate-100 rounded-lg">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
               )}
@@ -804,9 +973,20 @@ function App() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Sync button */}
+              <button
+                onClick={handleSync}
+                disabled={syncing || !isApiConfigured()}
+                className="p-2 hover:bg-slate-100 rounded-lg disabled:opacity-50"
+                title="Synchroniseren"
+              >
+                <RefreshCw className={`w-5 h-5 text-slate-500 ${syncing ? 'animate-spin' : ''}`} />
+              </button>
+
               <button onClick={() => setModal('hist')} className="p-2 hover:bg-slate-100 rounded-lg">
                 <History className="w-5 h-5 text-slate-500" />
               </button>
+
               <button
                 onClick={() => setModal('exp')}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2 hover:bg-green-700"
@@ -814,9 +994,27 @@ function App() {
                 <Download className="w-4 h-4" />
                 CSV
               </button>
-              <div className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${online ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+
+              {/* Online status */}
+              <div className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${online ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                 {online ? <Cloud className="w-3 h-3" /> : <CloudOff className="w-3 h-3" />}
+                {lastSync && <span className="hidden sm:inline">{lastSync.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}</span>}
               </div>
+
+              {/* Open Sheet link */}
+              {isApiConfigured() && (
+                <a
+                  href={SHEET_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 hover:bg-slate-100 rounded-lg"
+                  title="Open Google Sheet"
+                >
+                  <ExternalLink className="w-5 h-5 text-slate-500" />
+                </a>
+              )}
+
+              {/* Jaar selector */}
               <div className="flex border rounded-xl p-1">
                 {['2025-2026', '2026-2027'].map((j) => (
                   <button
@@ -828,12 +1026,14 @@ function App() {
                   </button>
                 ))}
               </div>
+
               <button
                 onClick={() => { setSchool(user); setEdit(false); }}
                 className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
               >
                 {user}
               </button>
+
               <button
                 onClick={() => { setUser(null); setSchool(null); setEdit(false); }}
                 className="p-2 hover:bg-red-50 rounded-lg text-slate-500"
@@ -843,7 +1043,7 @@ function App() {
             </div>
           </div>
 
-          {/* Sub-header: View & Filter buttons */}
+          {/* Sub-header */}
           {!edit && (
             <div className="border-t bg-slate-50/50">
               <div className="max-w-7xl mx-auto px-6 py-2 flex flex-wrap gap-2 justify-between">
@@ -890,10 +1090,7 @@ function App() {
                   <Edit3 className="w-5 h-5" />
                   Bewerken: {school}
                 </span>
-                <button
-                  onClick={() => setEdit(false)}
-                  className="px-4 py-1.5 bg-white border rounded-lg text-sm"
-                >
+                <button onClick={() => setEdit(false)} className="px-4 py-1.5 bg-white border rounded-lg text-sm">
                   Klaar
                 </button>
               </div>
@@ -903,10 +1100,23 @@ function App() {
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-6 py-6">
+          {/* API niet geconfigureerd warning */}
+          {!isApiConfigured() && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6 flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0" />
+              <div>
+                <h3 className="font-semibold text-yellow-800">Offline modus</h3>
+                <p className="text-sm text-yellow-700">
+                  Google Apps Script URL is nog niet geconfigureerd. Data wordt alleen lokaal opgeslagen.
+                  Zie INSTRUCTIES.md voor setup.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* EDIT MODE */}
           {edit && form ? (
             <div className="space-y-6">
-              {/* Info banner */}
               <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex items-start gap-3">
                 <Info className="w-6 h-6 text-blue-600 flex-shrink-0" />
                 <div>
@@ -921,7 +1131,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Edit vakken */}
               {vakken.map((v, i) => {
                 const vb = vakBases[i];
                 const vn = getNiveaus(vb);
@@ -950,10 +1159,7 @@ function App() {
                               {arr.map((m) => (
                                 <span key={m} className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-full text-sm">
                                   {m}
-                                  <button
-                                    onClick={() => rmMethode(vb, n, m)}
-                                    className="hover:text-red-500"
-                                  >
+                                  <button onClick={() => rmMethode(vb, n, m)} className="hover:text-red-500">
                                     <X className="w-3 h-3" />
                                   </button>
                                 </span>
@@ -977,14 +1183,14 @@ function App() {
                 );
               })}
 
-              {/* Save button */}
               {formChanged && (
                 <div className="sticky bottom-4">
                   <button
                     onClick={saveForm}
-                    className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg hover:bg-green-700"
+                    disabled={syncing}
+                    className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg hover:bg-green-700 disabled:opacity-50"
                   >
-                    <Check className="w-5 h-5" />
+                    {syncing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                     Opslaan
                   </button>
                 </div>
@@ -1039,10 +1245,7 @@ function App() {
 
                 return (
                   <div key={s} className="bg-white rounded-2xl border hover:shadow-lg transition-all">
-                    <button
-                      onClick={() => setSchool(s)}
-                      className="w-full text-left p-5 flex items-center gap-3"
-                    >
+                    <button onClick={() => setSchool(s)} className="w-full text-left p-5 flex items-center gap-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                         <School className="w-5 h-5 text-blue-600" />
                       </div>
@@ -1102,12 +1305,10 @@ function App() {
                                       </span>
                                     );
                                   })}
-                                  {msArr.length > 2 && (
-                                    <span className="text-xs px-2 py-1 bg-slate-200 rounded-full">+{msArr.length - 2}</span>
-                                  )}
+                                  {msArr.length > 2 && <span className="text-xs px-2 py-1 bg-slate-200 rounded-full">+{msArr.length - 2}</span>}
                                 </div>
                               ) : (
-                                <span className="text-slate-300">—</span>
+                                <span className="text-slate-300">-</span>
                               )}
                             </td>
                           );
