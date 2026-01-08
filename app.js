@@ -180,8 +180,20 @@ function renderApp() {
 }
 
 function renderPerVak(filtered) {
-  const vakKleuren = {Wiskunde:'blue',Taal:'emerald',Spelling:'amber',Schrift:'teal',Frans:'pink',Wero:'purple',Godsdienst:'rose','Begrijpend lezen':'cyan',SOVA:'orange',Motoriek:'lime'};
-  
+  const vakStyles = {
+    Wiskunde: {bg:'bg-blue-50',border:'border-blue-200',icon:'bg-blue-600',title:'text-blue-700'},
+    Taal: {bg:'bg-emerald-50',border:'border-emerald-200',icon:'bg-emerald-600',title:'text-emerald-700'},
+    Spelling: {bg:'bg-amber-50',border:'border-amber-200',icon:'bg-amber-600',title:'text-amber-700'},
+    Schrift: {bg:'bg-teal-50',border:'border-teal-200',icon:'bg-teal-600',title:'text-teal-700'},
+    Frans: {bg:'bg-pink-50',border:'border-pink-200',icon:'bg-pink-600',title:'text-pink-700'},
+    Wero: {bg:'bg-purple-50',border:'border-purple-200',icon:'bg-purple-600',title:'text-purple-700'},
+    Godsdienst: {bg:'bg-rose-50',border:'border-rose-200',icon:'bg-rose-600',title:'text-rose-700'},
+    'Begrijpend lezen': {bg:'bg-cyan-50',border:'border-cyan-200',icon:'bg-cyan-600',title:'text-cyan-700'},
+    SOVA: {bg:'bg-orange-50',border:'border-orange-200',icon:'bg-orange-600',title:'text-orange-700'},
+    Motoriek: {bg:'bg-lime-50',border:'border-lime-200',icon:'bg-lime-600',title:'text-lime-700'}
+  };
+  const defaultStyle = {bg:'bg-slate-50',border:'border-slate-200',icon:'bg-slate-600',title:'text-slate-700'};
+
   return vakken.map(vak => {
     const items = {};
     filtered.filter(r => r.Vak === vak).forEach(r => {
@@ -190,15 +202,15 @@ function renderPerVak(filtered) {
       if (!items[k].s.includes(r.School)) items[k].s.push(r.School);
     });
     const list = Object.values(items).sort((a,b) => (niveauOrder[a.n]||0)-(niveauOrder[b.n]||0) || a.m.localeCompare(b.m));
-    const kleur = vakKleuren[vak] || 'slate';
-    
-    return `<div class="bg-${kleur}-50 border border-${kleur}-200 rounded-2xl mb-6">
+    const style = vakStyles[vak] || defaultStyle;
+
+    return `<div class="${style.bg} border ${style.border} rounded-2xl mb-6">
       <div class="p-5 border-b border-white/50 flex items-center gap-3">
-        <div class="w-10 h-10 bg-${kleur}-600 rounded-xl flex items-center justify-center text-white font-bold">${vak[0]}</div>
-        <div><h3 class="text-lg font-bold text-${kleur}-700">${vak}</h3><p class="text-sm text-slate-500">${list.length} methode(s)</p></div>
+        <div class="w-10 h-10 ${style.icon} rounded-xl flex items-center justify-center text-white font-bold">${vak[0]}</div>
+        <div><h3 class="text-lg font-bold ${style.title}">${vak}</h3><p class="text-sm text-slate-500">${list.length} methode(s)</p></div>
       </div>
       <div class="p-5">
-        ${list.length === 0 ? '<p class="text-slate-500 text-center py-4">Geen methodes</p>' : 
+        ${list.length === 0 ? '<p class="text-slate-500 text-center py-4">Geen methodes</p>' :
         `<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">${list.map(x => renderCard(x.m, x.n, null, uitgeverijen[x.m], x.s.length, !school)).join('')}</div>`}
       </div>
     </div>`;
@@ -277,11 +289,19 @@ function renderPerMethode() {
 }
 
 function renderCard(methode, niveau, vak, uitgeverij, aantal, showAantal) {
-  const nivKleur = {'P':'pink','K':'orange','L1':'violet','L2-6':'indigo','L2-3':'sky','L4-6':'slate'}[niveau] || 'gray';
+  const nivStyles = {
+    'P': 'bg-pink-100 text-pink-700',
+    'K': 'bg-orange-100 text-orange-700',
+    'L1': 'bg-violet-100 text-violet-700',
+    'L2-6': 'bg-indigo-100 text-indigo-700',
+    'L2-3': 'bg-sky-100 text-sky-700',
+    'L4-6': 'bg-slate-100 text-slate-700'
+  };
+  const nivStyle = nivStyles[niveau] || 'bg-gray-100 text-gray-700';
   return `<div class="bg-white rounded-xl p-4 shadow-sm">
     <div class="flex justify-between mb-2">
       <h4 class="font-semibold text-slate-800">${methode}</h4>
-      <span class="bg-${nivKleur}-100 text-${nivKleur}-700 text-xs px-2 py-0.5 rounded-full">${niveau}</span>
+      <span class="${nivStyle} text-xs px-2 py-0.5 rounded-full">${niveau}</span>
     </div>
     ${vak ? `<p class="text-xs text-slate-600 mb-1">${vak}</p>` : ''}
     ${uitgeverij ? `<p class="text-xs text-slate-500 mb-2">${uitgeverij}</p>` : ''}
