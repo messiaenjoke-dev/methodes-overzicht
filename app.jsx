@@ -10,10 +10,10 @@
  */
 
 // ============================================================================
-// CONFIGURATIE - PAS DEZE URL AAN NA DEPLOYMENT VAN GOOGLE APPS SCRIPT
+// CONFIGURATIE - Offline modus (localStorage)
 // ============================================================================
-const SCRIPT_URL = 'PLAK_HIER_JE_GOOGLE_APPS_SCRIPT_URL';
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1cji411XT14BS95ulWMjOYg0VzxATdAYt_qGhctiiXf4';
+const SCRIPT_URL = ''; // Leeg = offline modus
+const SHEET_URL = '';
 
 // ============================================================================
 // REACT HOOKS (via global React object)
@@ -162,6 +162,19 @@ const uitgKleuren = {
   'Plantyn': ['bg-purple-50', 'border-purple-200', 'text-purple-700', 'bg-purple-600'],
   'Zwijsen': ['bg-orange-50', 'border-orange-200', 'text-orange-700', 'bg-orange-500'],
   'Onbekend': ['bg-slate-50', 'border-slate-200', 'text-slate-700', 'bg-slate-500']
+};
+
+// Standaard methodes en uitgeverijen
+const defaultMU = {
+  "Reken Maar": "Van In", "Katapult": "Die Keure", "Wiskanjers": "Plantyn", "Kadet": "Die Keure",
+  "Veilig leren lezen": "Zwijsen", "Talent": "Van In", "Confetti": "Die Keure", "Dag Jules": "Zwijsen",
+  "Tijd voor taal accent": "Van In", "Talent+": "Van In", "Taalkanjers": "Plantyn", "Pistache": "Plantyn",
+  "Verrekijker": "Die Keure", "Labo": "Die Keure", "Tekstduikers": "Van In", "Nieuwsbegrip": "CED-Groep",
+  "Wouw": "Die Keure", "Wereldkanjers": "Plantyn", "Mikado": "Plantyn", "Ankers": "Van In",
+  "Tuin van Heden": "Die Keure", "Sterren aan de hemel": "Plantyn", "Jezus leeft": "Licap",
+  "TOV": "Licap", "Land in zicht": "Plantyn", "De Geluksvogels": "Lannoo", "Kat en Hond": "Zwijsen",
+  "Cas en Lisa": "Die Keure", "Cirkelen": "ABIMO", "Krullenbol": "Die Keure", "Karakter": "Van In",
+  "Zouff": "Van In", "Luna": "Die Keure", "Rekensprong": "Die Keure"
 };
 
 // ============================================================================
@@ -365,18 +378,6 @@ function Login({ onLogin }) {
           </button>
         </div>
 
-        {/* API Status */}
-        <div className="mt-4 text-center">
-          {isApiConfigured() ? (
-            <span className="text-green-200 text-sm flex items-center justify-center gap-1">
-              <Cloud className="w-4 h-4" /> Verbonden met Google Sheets
-            </span>
-          ) : (
-            <span className="text-yellow-200 text-sm flex items-center justify-center gap-1">
-              <AlertCircle className="w-4 h-4" /> Offline modus (alleen lokale opslag)
-            </span>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -423,7 +424,7 @@ function App() {
   const [jaar, setJaar] = useState('2025-2026');
   const [toast, setToast] = useState(null);
   const [data, setData] = useState({ '2025-2026': createEmpty(), '2026-2027': createEmpty() });
-  const [mu, setMu] = useState({});
+  const [mu, setMu] = useState(defaultMU);
   const [modal, setModal] = useState(null);
   const [hist, setHist] = useState([]);
   const [online, setOnline] = useState(false);
@@ -502,7 +503,7 @@ function App() {
       if (cached) {
         const p = JSON.parse(cached);
         if (p.data) setData(p.data);
-        if (p.mu) setMu(p.mu);
+        if (p.mu) setMu({ ...defaultMU, ...p.mu });
         if (p.hist) setHist(p.hist);
         if (p.lastSync) setLastSync(new Date(p.lastSync));
         return true;
@@ -973,17 +974,7 @@ function App() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Sync button */}
-              <button
-                onClick={handleSync}
-                disabled={syncing || !isApiConfigured()}
-                className="p-2 hover:bg-slate-100 rounded-lg disabled:opacity-50"
-                title="Synchroniseren"
-              >
-                <RefreshCw className={`w-5 h-5 text-slate-500 ${syncing ? 'animate-spin' : ''}`} />
-              </button>
-
-              <button onClick={() => setModal('hist')} className="p-2 hover:bg-slate-100 rounded-lg">
+              <button onClick={() => setModal('hist')} className="p-2 hover:bg-slate-100 rounded-lg" title="Geschiedenis">
                 <History className="w-5 h-5 text-slate-500" />
               </button>
 
@@ -994,25 +985,6 @@ function App() {
                 <Download className="w-4 h-4" />
                 CSV
               </button>
-
-              {/* Online status */}
-              <div className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${online ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                {online ? <Cloud className="w-3 h-3" /> : <CloudOff className="w-3 h-3" />}
-                {lastSync && <span className="hidden sm:inline">{lastSync.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}</span>}
-              </div>
-
-              {/* Open Sheet link */}
-              {isApiConfigured() && (
-                <a
-                  href={SHEET_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 hover:bg-slate-100 rounded-lg"
-                  title="Open Google Sheet"
-                >
-                  <ExternalLink className="w-5 h-5 text-slate-500" />
-                </a>
-              )}
 
               {/* Jaar selector */}
               <div className="flex border rounded-xl p-1">
@@ -1100,15 +1072,14 @@ function App() {
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-6 py-6">
-          {/* API niet geconfigureerd warning */}
-          {!isApiConfigured() && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 mb-6 flex items-start gap-3">
-              <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0" />
+          {/* Info banner */}
+          {!school && !edit && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6 flex items-start gap-3">
+              <Info className="w-6 h-6 text-blue-600 flex-shrink-0" />
               <div>
-                <h3 className="font-semibold text-yellow-800">Offline modus</h3>
-                <p className="text-sm text-yellow-700">
-                  Google Apps Script URL is nog niet geconfigureerd. Data wordt alleen lokaal opgeslagen.
-                  Zie INSTRUCTIES.md voor setup.
+                <h3 className="font-semibold text-blue-800">Welkom bij Methodes Overzicht</h3>
+                <p className="text-sm text-blue-700">
+                  Klik op je school om methodes te bekijken en bewerken. Data wordt lokaal opgeslagen in je browser.
                 </p>
               </div>
             </div>
