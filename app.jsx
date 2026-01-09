@@ -1,14 +1,60 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { BookOpen, School, X, Calculator, Languages, FileText, Globe, Brain, Users, Activity, Check, AlertCircle, Cloud, CloudOff, Plus, Lock, LogOut, Download, FileDown, CheckCircle2, XCircle, Eye, EyeOff, Flag, ArrowLeft, Edit3, Info, History, RefreshCw, Loader2 } from 'lucide-react';
-
 // Google Apps Script URL voor synchronisatie
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwuZXP1wkPHfJ3fkJ3y4-7Dzm5lWgaoIEnoVuJlYsKZGVoK_TQLeA62AGcPsOmhYsWVmQ/exec';
+
+// React hooks via global React object
+const { useState, useMemo, useEffect } = React;
+
+// Lucide icons helper
+function createIcon(name) {
+  return function Icon({ className = "w-5 h-5" }) {
+    const ref = React.useRef(null);
+    React.useEffect(() => {
+      if (ref.current && lucide.icons[name]) {
+        ref.current.innerHTML = '';
+        const svg = lucide.icons[name].toSvg({ class: className });
+        ref.current.innerHTML = svg;
+      }
+    }, [className]);
+    return <span ref={ref} className="inline-flex" />;
+  };
+}
+
+// Icon componenten
+const BookOpen = createIcon('book-open');
+const School = createIcon('school');
+const X = createIcon('x');
+const Calculator = createIcon('calculator');
+const Languages = createIcon('languages');
+const FileText = createIcon('file-text');
+const Globe = createIcon('globe');
+const Brain = createIcon('brain');
+const Users = createIcon('users');
+const Activity = createIcon('activity');
+const Check = createIcon('check');
+const AlertCircle = createIcon('alert-circle');
+const Cloud = createIcon('cloud');
+const CloudOff = createIcon('cloud-off');
+const Plus = createIcon('plus');
+const Lock = createIcon('lock');
+const LogOut = createIcon('log-out');
+const Download = createIcon('download');
+const FileDown = createIcon('file-down');
+const CheckCircle2 = createIcon('check-circle-2');
+const XCircle = createIcon('x-circle');
+const Eye = createIcon('eye');
+const EyeOff = createIcon('eye-off');
+const Flag = createIcon('flag');
+const ArrowLeft = createIcon('arrow-left');
+const Edit3 = createIcon('edit-3');
+const Info = createIcon('info');
+const History = createIcon('history');
+const RefreshCw = createIcon('refresh-cw');
+const Loader2 = createIcon('loader-2');
 
 const schools = ["Ten Parke", "De Groeituin", "De Oefenschool", "De Leeuw", "De Tweesprong", "De Boomhut", "Wijnendale", "Driekoningen", "De Torretjes", "De Stapsteen", "'t Vlot", "De Fonkel", "De Revinze", "De Negensprong", "De Schatkist"];
 const passwords = { "'t Vlot": "Piraat@Banaan2025", "De Boomhut": "KlimAap!Koekjes9", "De Fonkel": "Ster*Glitter88", "De Groeituin": "Wortels#Groeien7", "De Negensprong": ["Spring@Kikker11", "Huppel!Konijn22"], "De Oefenschool": "Turnen$Plezier3", "De Revinze": "Dansen@Disco99", "De Schatkist": "Goud*Diamant77", "De Stapsteen": "Wandel!Berg2025", "De Tweesprong": "Keuze@Links44", "Driekoningen": "Kroon!Geschenk6", "Ten Parke": "Picknic@Gras55", "Wijnendale": "Druif*Feest2025", "De Leeuw": "Brullen!Savanne8", "De Torretjes": "Torretje@Stip2025" };
 const vakken = ['Wiskunde','Taal','Spelling','Schrift','Frans','Wero','Godsdienst','Begrijpend lezen','SOVA','Motoriek'];
 const vakBases = ['wiskunde','taal','spelling','schrift','frans','wero','godsdienst','begrijpend_lezen','sova','motoriek'];
-const vakLabels = {'wiskunde':'Wiskunde','taal':'Taal','spelling':'Spelling','schrift':'Schrift','frans':'Frans','wero':'Wero','godsdienst':'Godsdienst','begrijpend_lezen':'Begrijpend lezen','sova':'SOVA','motoriek':'Motoriek'};
 const niveauLabels = {p:'P',k:'K',l1:'L1',l2_6:'L2-6',l2_3:'L2-3',l4_6:'L4-6'};
 const niveauFromLabel = {'P':'p','K':'k','L1':'l1','L2-6':'l2_6','L2-3':'l2_3','L4-6':'l4_6'};
 const vakFromLabel = {'Wiskunde':'wiskunde','Taal':'taal','Spelling':'spelling','Schrift':'schrift','Frans':'frans','Wero':'wero','Godsdienst':'godsdienst','Begrijpend lezen':'begrijpend_lezen','SOVA':'sova','Motoriek':'motoriek'};
@@ -150,7 +196,7 @@ function Card(props) {
   );
 }
 
-export default function App() {
+function App() {
   const [user, setUser] = useState(null);
   const [school, setSchool] = useState(null);
   const [edit, setEdit] = useState(false);
@@ -381,7 +427,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center">
         <div className="text-center text-white">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4"/>
+          <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p>Data laden...</p>
         </div>
       </div>
@@ -509,7 +555,7 @@ export default function App() {
               </select>
               {addErr && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4"/>{addErr}</div>}
               <button onClick={addNewMethode} disabled={syncing} className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50">
-                {syncing ? <Loader2 className="w-5 h-5 animate-spin"/> : <Plus className="w-5 h-5"/>}
+                {syncing ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Plus className="w-5 h-5"/>}
                 Toevoegen
               </button>
             </div>
@@ -579,8 +625,8 @@ export default function App() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={handleSync} disabled={syncing} className="p-2 hover:bg-slate-100 rounded-lg" title="Synchroniseren">
-                <RefreshCw className={'w-5 h-5 text-slate-500 '+(syncing?'animate-spin':'')}/>
+              <button onClick={handleSync} disabled={syncing} className={'p-2 hover:bg-slate-100 rounded-lg '+(syncing?'animate-spin':'')} title="Synchroniseren">
+                <RefreshCw className="w-5 h-5 text-slate-500"/>
               </button>
               <button onClick={function(){setModal('hist');}} className="p-2 hover:bg-slate-100 rounded-lg"><History className="w-5 h-5 text-slate-500"/></button>
               <button onClick={function(){setModal('exp');}} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2"><Download className="w-4 h-4"/>CSV</button>
@@ -678,7 +724,7 @@ export default function App() {
               {formChanged && (
                 <div className="sticky bottom-4">
                   <button onClick={saveForm} disabled={syncing} className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg disabled:opacity-50">
-                    {syncing ? <Loader2 className="w-5 h-5 animate-spin"/> : <Check className="w-5 h-5"/>}
+                    {syncing ? <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Check className="w-5 h-5"/>}
                     Opslaan
                   </button>
                 </div>
@@ -814,3 +860,7 @@ export default function App() {
     </div>
   );
 }
+
+// Render de app
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
