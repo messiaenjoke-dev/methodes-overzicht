@@ -571,15 +571,28 @@ function App() {
   }, []);
 
   /**
-   * Laad data uit localStorage cache
+   * Laad data uit localStorage cache (alleen als er echte data in zit)
    */
   const loadFromCache = useCallback(() => {
     try {
       const cached = localStorage.getItem('methodes-cache');
       if (cached) {
         const p = JSON.parse(cached);
-        if (p.data) setData(p.data);
-        if (p.mu) setMu({ ...defaultMU, ...p.mu });
+        // Alleen laden als er daadwerkelijk data in de cache zit
+        if (p.data && Object.keys(p.data).length > 0) {
+          // Check of er methodes in zitten (niet alleen lege objecten)
+          const hasData = Object.values(p.data).some(jaarData =>
+            Object.values(jaarData).some(schoolData =>
+              Object.values(schoolData).some(vakData =>
+                Object.values(vakData).some(arr => Array.isArray(arr) && arr.length > 0)
+              )
+            )
+          );
+          if (hasData) {
+            setData(p.data);
+          }
+        }
+        if (p.mu && Object.keys(p.mu).length > 0) setMu({ ...defaultMU, ...p.mu });
         if (p.hist) setHist(p.hist);
         if (p.lastSync) setLastSync(new Date(p.lastSync));
         return true;
@@ -1133,14 +1146,28 @@ function App() {
           {/* Edit mode header */}
           {edit && (
             <div className="border-t bg-green-50">
-              <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between">
+              <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
                 <span className="font-medium text-green-700 flex items-center gap-2">
                   <Edit3 className="w-5 h-5" />
                   Bewerken: {school}
                 </span>
-                <button onClick={() => setEdit(false)} className="px-4 py-1.5 bg-white border rounded-lg text-sm">
-                  Klaar
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setEdit(false); setForm(null); }}
+                    className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-slate-50"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Terug
+                  </button>
+                  <button
+                    onClick={saveForm}
+                    disabled={syncing || !formChanged}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    Opslaan
+                  </button>
+                </div>
               </div>
             </div>
           )}
