@@ -210,6 +210,7 @@ function App() {
   const [deleteMethode, setDeleteMethode] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
+  const [lastDeleted, setLastDeleted] = useState(null);
 
   const cur = data[jaar];
   const mList = useMemo(() => Object.keys(mu).sort(), [mu]);
@@ -532,6 +533,9 @@ function App() {
       return;
     }
     
+    // Save for undo
+    const deletedUitgeverij = mu[methodeName];
+    
     // Remove from mu
     const newMu = {...mu};
     delete newMu[methodeName];
@@ -540,6 +544,20 @@ function App() {
     
     if(await save(data, newMu, h)) {
       setDeleteMethode(null);
+      setLastDeleted({name: methodeName, uitgeverij: deletedUitgeverij, timestamp: Date.now()});
+    }
+  };
+
+  // Undo delete function
+  const undoDelete = async () => {
+    if(!lastDeleted) return;
+    
+    const newMu = {...mu, [lastDeleted.name]: lastDeleted.uitgeverij};
+    const h = {id: Date.now(), timestamp: new Date().toISOString(), school: user, action: 'Methode hersteld', details: lastDeleted.name, jaar};
+    
+    if(await save(data, newMu, h)) {
+      setLastDeleted(null);
+      setToast({m:`"${lastDeleted.name}" is hersteld!`,t:'s'});
     }
   };
 
@@ -557,6 +575,12 @@ function App() {
       color: "blue"
     },
     {
+      title: "Ga naar jouw school",
+      icon: "School",
+      content: "Om jouw school te bekijken of bewerken, klik je rechtsboven op je schoolnaam (de blauwe knop). Je kunt ook via 'Per school' klikken op jouw school om er naartoe te gaan.",
+      color: "blue"
+    },
+    {
       title: "Je kunt alleen jouw school bewerken",
       icon: "Lock",
       content: "Je kunt de methodes van alle scholen bekijken, maar je kunt alleen de methodes van jouw eigen school aanpassen. Bij andere scholen zie je een 🔒 en 'Alleen bekijken'.",
@@ -571,13 +595,13 @@ function App() {
     {
       title: "Vergeet niet te synchroniseren!",
       icon: "RefreshCw",
-      content: "Na het maken van wijzigingen worden deze automatisch opgeslagen. Klik op 'Sync' om de laatste wijzigingen van andere scholen op te halen. Doe dit regelmatig!",
+      content: "Na het maken van wijzigingen worden deze automatisch opgeslagen naar Google Sheets. Klik op 'Sync' om de laatste wijzigingen van andere scholen op te halen. Doe dit regelmatig!",
       color: "indigo"
     },
     {
       title: "Je bent klaar om te beginnen! 🎉",
       icon: "CheckCircle",
-      content: "Je weet nu alles om aan de slag te gaan. Veel succes met het beheren van de methodes!",
+      content: "Je weet nu alles om aan de slag te gaan. Klik op het ℹ️ icoon rechtsboven om deze uitleg opnieuw te bekijken. Veel succes!",
       color: "green"
     }
   ];
@@ -657,6 +681,20 @@ function App() {
           <Icon name={toast.t==='s' ? 'CheckCircle' : 'XCircle'} className="w-5 h-5"/>
           {toast.m}
           <button onClick={() => setToast(null)} className="ml-2"><Icon name="X" className="w-4 h-4"/></button>
+        </div>
+      )}
+
+      {/* Undo Delete Toast */}
+      {lastDeleted && (Date.now() - lastDeleted.timestamp < 30000) && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4">
+          <Icon name="Trash" className="w-5 h-5 text-slate-400"/>
+          <span>"{lastDeleted.name}" verwijderd</span>
+          <button onClick={undoDelete} className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium flex items-center gap-2">
+            <Icon name="RefreshCw" className="w-4 h-4"/>Ongedaan maken
+          </button>
+          <button onClick={() => setLastDeleted(null)} className="p-1 hover:bg-slate-700 rounded">
+            <Icon name="X" className="w-4 h-4"/>
+          </button>
         </div>
       )}
 
@@ -800,7 +838,6 @@ function App() {
               <h2 className="text-xl font-bold flex items-center gap-2 text-red-600"><Icon name="Trash" className="w-5 h-5"/>Methode verwijderen</h2>
               <button onClick={() => setDeleteMethode(null)} className="p-2 hover:bg-slate-100 rounded-lg"><Icon name="X" className="w-5 h-5"/></button>
             </div>
-            <p className="text-slate-600 mb-2">Weet je zeker dat je deze methode wilt verwijderen?</p>
             <div className="bg-slate-100 rounded-xl p-4 mb-4">
               <h4 className="font-bold">{deleteMethode}</h4>
               <p className="text-sm text-slate-500">{mu[deleteMethode]}</p>
@@ -809,9 +846,16 @@ function App() {
               <Icon name="AlertCircle" className="w-4 h-4"/>
               Let op: dit kan alleen als de methode niet door scholen wordt gebruikt.
             </p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+              <p className="font-semibold text-red-800 text-center">Ben je zeker dat je deze methode wilt verwijderen?</p>
+            </div>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteMethode(null)} className="flex-1 py-2 border rounded-xl font-medium">Annuleren</button>
-              <button onClick={() => confirmDeleteMethode(deleteMethode)} className="flex-1 py-2 bg-red-600 text-white rounded-xl font-medium">Verwijderen</button>
+              <button onClick={() => setDeleteMethode(null)} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold text-slate-700 flex items-center justify-center gap-2">
+                <Icon name="X" className="w-4 h-4"/>Nee, annuleren
+              </button>
+              <button onClick={() => confirmDeleteMethode(deleteMethode)} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2">
+                <Icon name="Trash" className="w-4 h-4"/>Ja, verwijderen
+              </button>
             </div>
           </div>
         </div>
