@@ -1,712 +1,699 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Methodes Overzicht - Sint-Rembert</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .animate-spin { animation: spin 1s linear infinite; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Methodes Overzicht - Sint-Rembert</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-slate-50">
-    <div id="root"></div>
-    <script type="text/babel">
-// ============================================
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+const { useState, useMemo, useEffect } = React;
+
+// =============================================================================
 // CONFIGURATIE
-// ============================================
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/exec';
-const STORAGE_KEY = 'methodes-sgsr-v5';
+// =============================================================================
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwFBiAcE4BnmoSCJVJdz3uTpPUQr7meNvo3Ej07UVgzYnH-9NzudbWRsX8l_rsqo62TRA/exec';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1cji411XT14BS95ulWMjOYg0VzxATdAYt_qGhctiiXf4';
 
-// ============================================
-// SCHOOL DATA - SCHOLENGROEP SINT-REMBERT
-// ============================================
-const schools = [
-  { id: 'tenparke', name: 'Ten Parke', pw: 'Picknic@Gras55' },
-  { id: 'groeituin', name: 'De Groeituin', pw: 'Wortels#Groeien7' },
-  { id: 'oefenschool', name: 'De Oefenschool', pw: 'Turnen$Plezier3' },
-  { id: 'leeuw', name: 'De Leeuw', pw: 'Brullen!Savanne8' },
-  { id: 'tweesprong', name: 'De Tweesprong', pw: 'Keuze@Links44' },
-  { id: 'boomhut', name: 'De Boomhut', pw: 'KlimAap!Koekjes9' },
-  { id: 'wijnendale', name: 'Wijnendale', pw: 'Druif*Feest2025' },
-  { id: 'driekoningen', name: 'Driekoningen', pw: 'Kroon!Geschenk6' },
-  { id: 'torretjes', name: 'De Torretjes', pw: 'Torretje@Stip2025' },
-  { id: 'stapsteen', name: 'De Stapsteen', pw: 'Wandel!Berg2025' },
-  { id: 'vlot', name: "'t Vlot", pw: 'Piraat@Banaan2025' },
-  { id: 'fonkel', name: 'De Fonkel', pw: 'Ster*Glitter88' },
-  { id: 'revinze', name: 'De Revinze', pw: 'Dansen@Disco99' },
-  { id: 'negensprong', name: 'De Negensprong', pw: 'Spring@Kikker11' },
-  { id: 'schatkist', name: 'De Schatkist', pw: 'Goud*Diamant77' }
-];
+// =============================================================================
+// DATA
+// =============================================================================
+const schools = ["Ten Parke", "De Groeituin", "De Oefenschool", "De Leeuw", "De Tweesprong", "De Boomhut", "Wijnendale", "Driekoningen", "De Torretjes", "De Stapsteen", "'t Vlot", "De Fonkel", "De Revinze", "De Negensprong", "De Schatkist"];
+const passwords = { "'t Vlot": "Piraat@Banaan2025", "De Boomhut": "KlimAap!Koekjes9", "De Fonkel": "Ster*Glitter88", "De Groeituin": "Wortels#Groeien7", "De Negensprong": ["Spring@Kikker11", "Huppel!Konijn22"], "De Oefenschool": "Turnen$Plezier3", "De Revinze": "Dansen@Disco99", "De Schatkist": "Goud*Diamant77", "De Stapsteen": "Wandel!Berg2025", "De Tweesprong": "Keuze@Links44", "Driekoningen": "Kroon!Geschenk6", "Ten Parke": "Picknic@Gras55", "Wijnendale": "Druif*Feest2025", "De Leeuw": "Brullen!Savanne8", "De Torretjes": "Torretje@Stip2025" };
+const vakken = ['Wiskunde','Taal','Spelling','Schrift','Frans','Wero','Godsdienst','Begrijpend lezen','SOVA','Motoriek'];
+const vakBases = ['wiskunde','taal','spelling','schrift','frans','wero','godsdienst','begrijpend_lezen','sova','motoriek'];
+const niveauLabels = {p:'P',k:'K',l1:'L1',l2_6:'L2-6',l2_3:'L2-3',l4_6:'L4-6'};
+const getNiveaus = (v) => v==='schrift' ? ['l1','l2_3','l4_6'] : ['p','k','l1','l2_6'];
+const niveauOrder = {p:0,k:1,l1:2,l2_3:3,l4_6:4,l2_6:5};
+const vakKleuren = {Wiskunde:['bg-blue-50','border-blue-200','text-blue-700','bg-blue-600'],Taal:['bg-emerald-50','border-emerald-200','text-emerald-700','bg-emerald-600'],Spelling:['bg-amber-50','border-amber-200','text-amber-700','bg-amber-500'],Schrift:['bg-teal-50','border-teal-200','text-teal-700','bg-teal-600'],Frans:['bg-pink-50','border-pink-200','text-pink-700','bg-pink-500'],Wero:['bg-purple-50','border-purple-200','text-purple-700','bg-purple-600'],Godsdienst:['bg-rose-50','border-rose-200','text-rose-700','bg-rose-500'],'Begrijpend lezen':['bg-cyan-50','border-cyan-200','text-cyan-700','bg-cyan-600'],SOVA:['bg-orange-50','border-orange-200','text-orange-700','bg-orange-500'],Motoriek:['bg-lime-50','border-lime-200','text-lime-700','bg-lime-600']};
+const niveauKleuren = {p:['bg-pink-100','text-pink-700'],k:['bg-orange-100','text-orange-700'],l1:['bg-violet-100','text-violet-700'],l2_6:['bg-indigo-100','text-indigo-700'],l2_3:['bg-sky-100','text-sky-700'],l4_6:['bg-slate-100','text-slate-700']};
+const uitgKleuren = {'Van In':['bg-blue-50','border-blue-200','text-blue-700','bg-blue-600'],'Die Keure':['bg-emerald-50','border-emerald-200','text-emerald-700','bg-emerald-600'],Plantyn:['bg-purple-50','border-purple-200','text-purple-700','bg-purple-600'],Zwijsen:['bg-orange-50','border-orange-200','text-orange-700','bg-orange-500'],Onbekend:['bg-slate-50','border-slate-200','text-slate-700','bg-slate-500']};
+const defMU = {"Reken Maar":"Van In",Katapult:"Die Keure",Wiskanjers:"Plantyn",Kadet:"Die Keure","Veilig leren lezen":"Zwijsen",Talent:"Van In",Confetti:"Die Keure","Dag Jules":"Zwijsen","Tijd voor taal accent":"Van In","Talent+":"Van In",Taalkanjers:"Plantyn",Pistache:"Plantyn",Verrekijker:"Die Keure",Labo:"Die Keure",Tekstduikers:"Van In",Nieuwsbegrip:"CED-Groep",Wouw:"Die Keure",Wereldkanjers:"Plantyn",Mikado:"Plantyn",Ankers:"Van In","Tuin van Heden":"Die Keure","Sterren aan de hemel":"Plantyn","Jezus leeft":"Licap",TOV:"Licap","Land in zicht":"Plantyn","De Geluksvogels":"Lannoo","Kat en Hond":"Zwijsen","Loeloe en Pompom":"Zwijsen","Cas en Lisa":"Die Keure",Junglemaatjes:"Die Keure",Cirkelen:"ABIMO",Krullenbol:"Die Keure",Karakter:"Van In",Zouff:"Van In","Ik lees met Hup":"Malmberg",Kwartierlezen:"Malmberg",Luna:"Die Keure","Dag LoeLoe":"Zwijsen","Dag Pompom":"Zwijsen",Flonflon:"Zwijsen",Rekensprong:"Die Keure"};
 
-const vakken = ['Nederlands', 'Wiskunde', 'Frans', 'WO', 'Muzische vorming', 'LO', 'Godsdienst', 'ICT'];
-const niveaus = ['P', 'K', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6'];
-const niveauLabels = { P: 'Peuterklas', K: 'Kleuterklas', L1: 'Leerjaar 1', L2: 'Leerjaar 2', L3: 'Leerjaar 3', L4: 'Leerjaar 4', L5: 'Leerjaar 5', L6: 'Leerjaar 6' };
-
-// Initiële methodes en uitgeverijen
-const initMethodes = {
-  'Tijd voor Taal': 'Van In',
-  'Nieuwe Taalverhaal': 'Plantyn',
-  'Taal actief': 'Malmberg',
-  'Pluspunt': 'Malmberg',
-  'Nieuwe Tal-rijk': 'Plantyn',
-  'Kompas': 'VAN IN',
-  'Mundo': 'Plantyn',
-  'Bandito': 'Die Keure',
-  'Alles Telt': 'ThiemeMeulenhoff',
-  'Zo gezegd': 'Pelckmans',
-  'Quartier Latin': 'Plantyn',
-  'Eventail Junior': 'Die Keure'
+const emptyV = () => {
+  const o = {};
+  vakBases.forEach(v => { o[v] = v==='schrift' ? {l1:[],l2_3:[],l4_6:[]} : {p:[],k:[],l1:[],l2_6:[]}; });
+  return o;
 };
 
-// ============================================
-// LOGIN COMPONENT
-// ============================================
-function Login({ onLogin }) {
-  const [school, setSchool] = React.useState('');
-  const [pw, setPw] = React.useState('');
-  const [err, setErr] = React.useState('');
+const initData = {
+  "De Boomhut": {...emptyV(), schrift:{l1:["Luna"],l2_3:["Luna"],l4_6:[]}},
+  "Ten Parke": {wiskunde:{p:[],k:[],l1:[],l2_6:["Reken Maar"]},taal:{p:["Dag Jules"],k:["Confetti"],l1:["Veilig leren lezen"],l2_6:["Talent"]},spelling:{p:[],k:[],l1:["Tijd voor taal accent"],l2_6:["Tijd voor taal accent"]},schrift:{l1:[],l2_3:[],l4_6:[]},frans:{p:[],k:[],l1:[],l2_6:["Zouff"]},wero:{p:[],k:[],l1:["Wouw"],l2_6:["Wouw"]},godsdienst:{p:["Sterren aan de hemel"],k:["Sterren aan de hemel"],l1:["Sterren aan de hemel"],l2_6:["Sterren aan de hemel"]},begrijpend_lezen:{p:[],k:[],l1:[],l2_6:["Talent+","Tekstduikers"]},sova:{p:[],k:["Kat en Hond"],l1:[],l2_6:["De Geluksvogels"]},motoriek:{p:[],k:["Krullenbol"],l1:["Karakter"],l2_6:["Karakter"]}},
+  "De Leeuw": {wiskunde:{p:[],k:[],l1:[],l2_6:["Katapult"]},taal:{p:[],k:[],l1:[],l2_6:["Talent"]},spelling:{p:[],k:[],l1:[],l2_6:["Tijd voor taal accent"]},schrift:{l1:[],l2_3:[],l4_6:[]},frans:{p:[],k:[],l1:[],l2_6:[]},wero:{p:[],k:[],l1:[],l2_6:["Wereldkanjers"]},godsdienst:{p:[],k:[],l1:[],l2_6:["Sterren aan de hemel"]},begrijpend_lezen:{p:[],k:[],l1:[],l2_6:[]},sova:{p:[],k:[],l1:[],l2_6:[]},motoriek:{p:[],k:["Krullenbol"],l1:[],l2_6:[]}},
+  "De Tweesprong": {wiskunde:{p:[],k:[],l1:[],l2_6:["Katapult"]},taal:{p:["Dag Jules"],k:["Pistache"],l1:["Taalkanjers"],l2_6:["Taalkanjers"]},spelling:{p:[],k:[],l1:["Taalkanjers"],l2_6:["Taalkanjers"]},schrift:{l1:[],l2_3:[],l4_6:[]},frans:{p:[],k:[],l1:[],l2_6:[]},wero:{p:[],k:[],l1:[],l2_6:["Wereldkanjers"]},godsdienst:{p:[],k:["TOV"],l1:["Jezus leeft","Sterren aan de hemel"],l2_6:["Jezus leeft","Sterren aan de hemel"]},begrijpend_lezen:{p:[],k:[],l1:[],l2_6:[]},sova:{p:[],k:[],l1:[],l2_6:[]},motoriek:{p:[],k:["Krullenbol"],l1:["Karakter"],l2_6:["Karakter"]}},
+  "'t Vlot": {wiskunde:{p:[],k:[],l1:[],l2_6:["Katapult","Wiskanjers"]},taal:{p:[],k:[],l1:["Veilig leren lezen"],l2_6:["Taalkanjers"]},spelling:{p:[],k:[],l1:["Taalkanjers"],l2_6:["Taalkanjers"]},schrift:{l1:[],l2_3:[],l4_6:[]},frans:{p:[],k:[],l1:[],l2_6:[]},wero:{p:[],k:[],l1:[],l2_6:["Wereldkanjers"]},godsdienst:{p:[],k:[],l1:[],l2_6:["TOV"]},begrijpend_lezen:{p:[],k:[],l1:[],l2_6:[]},sova:{p:[],k:[],l1:[],l2_6:[]},motoriek:{p:[],k:["Krullenbol"],l1:[],l2_6:["Karakter"]}},
+  "De Schatkist": {wiskunde:{p:[],k:[],l1:[],l2_6:["Kadet"]},taal:{p:[],k:[],l1:["Ik lees met Hup"],l2_6:["Verrekijker","Labo","Kwartierlezen"]},spelling:{p:[],k:[],l1:[],l2_6:["Verrekijker","Labo"]},schrift:{l1:[],l2_3:[],l4_6:[]},frans:{p:[],k:[],l1:[],l2_6:[]},wero:{p:[],k:[],l1:["Wereldkanjers","Labo"],l2_6:["Wereldkanjers"]},godsdienst:{p:[],k:["Sterren aan de hemel"],l1:[],l2_6:["Sterren aan de hemel"]},begrijpend_lezen:{p:[],k:[],l1:[],l2_6:["Verrekijker","Tekstduikers"]},sova:{p:[],k:["Cas en Lisa"],l1:["Cirkelen"],l2_6:["Cirkelen"]},motoriek:{p:[],k:["Krullenbol"],l1:["Karakter"],l2_6:["Karakter"]}}
+};
 
-  const handleLogin = () => {
-    const s = schools.find(x => x.id === school);
-    if (!s) { setErr('Kies een school'); return; }
-    if (pw !== s.pw) { setErr('Ongeldig wachtwoord'); return; }
-    onLogin(s);
+const createData = () => { const d = {...initData}; schools.forEach(s => { if(!d[s]) d[s] = emptyV(); }); return d; };
+const createEmpty = () => { const d = {}; schools.forEach(s => { d[s] = emptyV(); }); return d; };
+
+// =============================================================================
+// COMPONENTEN
+// =============================================================================
+
+function Login({onLogin}) {
+  const [sel, setSel] = useState('');
+  const [pw, setPw] = useState('');
+  const [show, setShow] = useState(false);
+  const [err, setErr] = useState('');
+  
+  const go = () => {
+    if(!sel || !pw) { setErr('Vul alles in'); return; }
+    const c = passwords[sel];
+    if(Array.isArray(c) ? c.includes(pw) : c === pw) { onLogin(sel); }
+    else { setErr('Onjuist wachtwoord'); }
   };
-
+  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-6">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg">📚</div>
-          <h1 className="text-2xl font-bold text-slate-800">Methodes Overzicht</h1>
-          <p className="text-slate-500 mt-1">Scholengroep Sint-Rembert</p>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-xl mb-6 text-4xl">📚</div>
+          <h1 className="text-3xl font-bold text-white mb-2">Methodes Overzicht</h1>
+          <p className="text-blue-100">Scholengroep Sint-Rembert</p>
         </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">School</label>
-            <select value={school} onChange={e => { setSchool(e.target.value); setErr(''); }} className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-              <option value="">Kies je school...</option>
-              {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+        <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">🔒 Aanmelden</h2>
+          <select value={sel} onChange={e => {setSel(e.target.value);setErr('');}} className="w-full p-3 border rounded-xl">
+            <option value="">Kies school...</option>
+            {schools.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <div className="relative">
+            <input type={show?'text':'password'} value={pw} onChange={e => {setPw(e.target.value);setErr('');}} onKeyDown={e => e.key==='Enter' && go()} placeholder="Wachtwoord..." className="w-full p-3 pr-12 border rounded-xl"/>
+            <button onClick={() => setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">{show ? '🙈' : '👁️'}</button>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Wachtwoord</label>
-            <input type="password" value={pw} onChange={e => { setPw(e.target.value); setErr(''); }} onKeyDown={e => e.key === 'Enter' && handleLogin()} placeholder="Voer wachtwoord in" className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-          </div>
-          {err && <p className="text-red-500 text-sm bg-red-50 p-3 rounded-xl">{err}</p>}
-          <button onClick={handleLogin} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg">
-            Inloggen
-          </button>
+          {err && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm flex items-center gap-2">⚠️ {err}</div>}
+          <button onClick={go} className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2">🔐 Inloggen</button>
         </div>
       </div>
     </div>
   );
 }
 
-// ============================================
-// SCHOOL DETAIL COMPONENT
-// ============================================
-function SchoolDetail({ school, data, methodeUitg, onBack, isOwnSchool, onEdit }) {
-  const schoolData = data[school.id] || {};
-  
-  const kleuren = {
-    Nederlands: 'from-blue-400 to-blue-600',
-    Wiskunde: 'from-green-400 to-green-600',
-    Frans: 'from-red-400 to-red-600',
-    WO: 'from-yellow-400 to-yellow-600',
-    'Muzische vorming': 'from-pink-400 to-pink-600',
-    LO: 'from-orange-400 to-orange-600',
-    Godsdienst: 'from-purple-400 to-purple-600',
-    ICT: 'from-cyan-400 to-cyan-600'
+function Card({m, n, v, u, cnt, mu, showCnt}) {
+  const nkl = niveauKleuren[n] || ['bg-gray-100','text-gray-700'];
+  return (
+    <div className="bg-white rounded-xl p-4 shadow-sm">
+      <div className="flex justify-between mb-2">
+        <h4 className="font-semibold text-slate-800">{m}</h4>
+        <span className={nkl[0]+' '+nkl[1]+' text-xs px-2 py-0.5 rounded-full'}>{niveauLabels[n]}</span>
+      </div>
+      {v && <p className="text-xs text-slate-600 mb-1">{v}</p>}
+      <p className="text-xs text-slate-500 mb-2">{u || mu[m] || '?'}</p>
+      {showCnt && <div className="text-sm text-slate-500 flex items-center gap-1">🏫 {cnt} school{cnt!==1?'en':''}</div>}
+    </div>
+  );
+}
+
+// =============================================================================
+// MAIN APP
+// =============================================================================
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [school, setSchool] = useState(null);
+  const [edit, setEdit] = useState(false);
+  const [view, setView] = useState('vak');
+  const [niv, setNiv] = useState('alle');
+  const [jaar, setJaar] = useState('2025-2026');
+  const [toast, setToast] = useState(null);
+  const [data, setData] = useState({'2025-2026': createData(), '2026-2027': createEmpty()});
+  const [mu, setMu] = useState(defMU);
+  const [modal, setModal] = useState(null);
+  const [hist, setHist] = useState([]);
+  const [addNaam, setAddNaam] = useState('');
+  const [addUitg, setAddUitg] = useState('');
+  const [addErr, setAddErr] = useState('');
+  const [form, setForm] = useState(null);
+  const [formChanged, setFormChanged] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState(null);
+  const [syncError, setSyncError] = useState(null);
+
+  const cur = data[jaar];
+  const mList = useMemo(() => Object.keys(mu).sort(), [mu]);
+  const uList = useMemo(() => [...new Set(Object.values(mu))].sort(), [mu]);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('methodes-v24');
+      if(saved) {
+        const p = JSON.parse(saved);
+        if(p.data) setData({'2025-2026': {...createData(), ...p.data['2025-2026']}, '2026-2027': {...createEmpty(), ...p.data['2026-2027']}});
+        if(p.mu) setMu({...defMU, ...p.mu});
+        if(p.hist) setHist(p.hist);
+        if(p.lastSync) setLastSync(new Date(p.lastSync));
+      }
+    } catch(e) { console.error('Load error:', e); }
+  }, []);
+
+  useEffect(() => { if(toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
+  useEffect(() => { if(edit && school) { setForm(JSON.parse(JSON.stringify(cur[school] || emptyV()))); setFormChanged(false); } }, [edit, school, cur]);
+
+  // Sync function
+  const syncFromSheet = async () => {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=getMethodes`);
+      const sheetData = await res.json();
+      if(Array.isArray(sheetData) && sheetData.length > 1) {
+        const headers = sheetData[0];
+        const newData = {'2025-2026': createData(), '2026-2027': createEmpty()};
+        
+        sheetData.slice(1).forEach(row => {
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+          
+          const school = obj.School;
+          const vak = obj.Vak;
+          const niveau = obj.Niveau?.toLowerCase().replace('-','_');
+          const methode = obj.Methode;
+          const sjaar = obj.Schooljaar || '2025-2026';
+          
+          if(school && vak && niveau && methode && newData[sjaar]?.[school]) {
+            const vb = vakBases[vakken.indexOf(vak)];
+            if(vb && newData[sjaar][school][vb]?.[niveau]) {
+              if(!newData[sjaar][school][vb][niveau].includes(methode)) {
+                newData[sjaar][school][vb][niveau].push(methode);
+              }
+            }
+          }
+        });
+        
+        setData(newData);
+        const now = new Date();
+        setLastSync(now);
+        localStorage.setItem('methodes-v24', JSON.stringify({data: newData, mu, hist, lastSync: now.toISOString()}));
+        setToast({m: 'Gesynchroniseerd!', t: 's'});
+      }
+    } catch(e) {
+      console.error('Sync error:', e);
+      setSyncError(e.message);
+      setToast({m: 'Sync mislukt: ' + e.message, t: 'e'});
+    }
+    setSyncing(false);
   };
 
+  const save = (nd, nm, h) => {
+    if(nd) setData(nd);
+    if(nm) setMu(nm);
+    const nh = h ? [h, ...hist].slice(0,100) : hist;
+    if(h) setHist(nh);
+    try {
+      localStorage.setItem('methodes-v24', JSON.stringify({data: nd||data, mu: nm||mu, hist: nh, lastSync: lastSync?.toISOString()}));
+      setToast({m:'Opgeslagen!',t:'s'});
+      return true;
+    } catch(e) { setToast({m:'Fout bij opslaan',t:'e'}); return false; }
+  };
+
+  const mCnt = useMemo(() => {
+    const c = {};
+    schools.forEach(s => {
+      vakBases.forEach(vb => {
+        getNiveaus(vb).forEach(n => {
+          (cur[s]?.[vb]?.[n] || []).forEach(m => {
+            c[vb+'|'+m] = (c[vb+'|'+m]||0) + 1;
+          });
+        });
+      });
+    });
+    return c;
+  }, [cur]);
+
+  const perVak = useMemo(() => {
+    const r = {};
+    const ts = school ? [school] : schools;
+    vakken.forEach((v, i) => {
+      const map = {};
+      const vn = getNiveaus(vakBases[i]);
+      const fn = niv==='alle' ? vn : (vn.includes(niv) ? [niv] : []);
+      ts.forEach(s => {
+        fn.forEach(n => {
+          (cur[s]?.[vakBases[i]]?.[n] || []).forEach(m => {
+            const k = m+'|'+n;
+            if(!map[k]) map[k] = {m, n, s:[]};
+            if(!map[k].s.includes(s)) map[k].s.push(s);
+          });
+        });
+      });
+      r[v] = map;
+    });
+    return r;
+  }, [cur, niv, school]);
+
+  const perUitg = useMemo(() => {
+    const map = {};
+    const ts = school ? [school] : schools;
+    ts.forEach(s => {
+      vakBases.forEach((vb, i) => {
+        const vn = getNiveaus(vb);
+        const fn = niv==='alle' ? vn : (vn.includes(niv) ? [niv] : []);
+        fn.forEach(n => {
+          (cur[s]?.[vb]?.[n] || []).forEach(m => {
+            const u = mu[m] || 'Onbekend';
+            if(!map[u]) map[u] = {};
+            const k = m+'|'+vakken[i]+'|'+n;
+            if(!map[u][k]) map[u][k] = {m, v:vakken[i], n, s:[]};
+            if(!map[u][k].s.includes(s)) map[u][k].s.push(s);
+          });
+        });
+      });
+    });
+    return map;
+  }, [cur, niv, school, mu]);
+
+  if(!user) return <Login onLogin={setUser}/>;
+
+  const addMethode = (vb, n, val) => {
+    if(!val || !form) return;
+    const arr = form[vb]?.[n] || [];
+    if(arr.includes(val)) return;
+    const newForm = JSON.parse(JSON.stringify(form));
+    if(!newForm[vb]) newForm[vb] = {};
+    if(!newForm[vb][n]) newForm[vb][n] = [];
+    newForm[vb][n].push(val);
+    setForm(newForm);
+    setFormChanged(true);
+  };
+
+  const rmMethode = (vb, n, val) => {
+    if(!form) return;
+    const newForm = JSON.parse(JSON.stringify(form));
+    if(newForm[vb]?.[n]) newForm[vb][n] = newForm[vb][n].filter(x => x !== val);
+    setForm(newForm);
+    setFormChanged(true);
+  };
+
+  const saveForm = () => {
+    const h = {id: Date.now(), timestamp: new Date().toISOString(), school: user, action: 'Bijgewerkt', details: school, jaar};
+    const newData = JSON.parse(JSON.stringify(data));
+    newData[jaar][school] = form;
+    if(save(newData, null, h)) setFormChanged(false);
+  };
+
+  const addNewMethode = () => {
+    const tn = addNaam.trim();
+    if(!tn) { setAddErr('Vul naam in'); return; }
+    if(!addUitg) { setAddErr('Kies uitgeverij'); return; }
+    if(mu[tn]) { setAddErr('Bestaat al'); return; }
+    const h = {id: Date.now(), timestamp: new Date().toISOString(), school: user, action: 'Methode toegevoegd', details: tn, jaar};
+    const newMu = {...mu, [tn]: addUitg};
+    if(save(null, newMu, h)) {
+      setModal(null);
+      setAddNaam('');
+      setAddUitg('');
+      setAddErr('');
+    }
+  };
+
+  const downloadCSV = (all) => {
+    const ts = all ? schools : [user];
+    let csv = 'School;Vak;Niveau;Methode;Uitgeverij\n';
+    ts.forEach(s => {
+      vakBases.forEach((vb, i) => {
+        getNiveaus(vb).forEach(n => {
+          (cur[s]?.[vb]?.[n] || []).forEach(m => {
+            csv += `"${s}";"${vakken[i]}";"${niveauLabels[n]}";"${m}";"${mu[m]||''}"\n`;
+          });
+        });
+      });
+    });
+    const blob = new Blob(['\ufeff'+csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `methodes-${jaar}.csv`;
+    a.click();
+    setModal(null);
+    setToast({m:'Gedownload!',t:'s'});
+  };
+
+  const viewButtons = school 
+    ? [['vak','Per vak'],['uitgeverij','Per uitgeverij'],['methode','Per methode']]
+    : [['vak','Per vak'],['cards','Per school'],['uitgeverij','Per uitgeverij'],['methode','Per methode'],['table','Tabel']];
+  const nivButtons = ['alle','p','k','l1','l2_3','l4_6','l2_6'];
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
-            ← Terug
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-2xl">🏫</div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-800">{school.name}</h2>
-              {isOwnSchool && <span className="text-xs text-indigo-600 font-medium">Jouw school</span>}
+    <div>
+      {/* Toast */}
+      {toast && (
+        <div className={(toast.t==='s'?'bg-green-600':'bg-red-600')+' fixed top-4 right-4 z-50 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3'}>
+          {toast.t==='s' ? '✅' : '❌'} {toast.m}
+          <button onClick={() => setToast(null)} className="ml-2 text-xl">✕</button>
+        </div>
+      )}
+
+      {/* Modal: Nieuwe methode */}
+      {modal==='add' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setModal(null)}>
+          <div className="absolute inset-0 bg-black/50"/>
+          <div className="relative w-full max-w-md bg-white rounded-2xl p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2">➕ Nieuwe methode</h2>
+              <button onClick={() => setModal(null)} className="p-2 hover:bg-slate-100 rounded-lg text-xl">✕</button>
+            </div>
+            <div className="space-y-4">
+              <input value={addNaam} onChange={e => {setAddNaam(e.target.value);setAddErr('');}} placeholder="Naam methode" className="w-full p-3 border rounded-xl"/>
+              <select value={addUitg} onChange={e => {
+                if(e.target.value === '__new__') {
+                  const nieuw = prompt('Naam nieuwe uitgeverij:');
+                  if(nieuw && nieuw.trim()) {
+                    setAddUitg(nieuw.trim());
+                  }
+                } else {
+                  setAddUitg(e.target.value);
+                }
+                setAddErr('');
+              }} className="w-full p-3 border rounded-xl">
+                <option value="">Kies uitgeverij...</option>
+                {uList.map(u => <option key={u} value={u}>{u}</option>)}
+                <option value="__new__">➕ Nieuwe uitgeverij...</option>
+              </select>
+              {addUitg && !uList.includes(addUitg) && (
+                <div className="text-sm text-green-600">✓ Nieuwe uitgeverij: {addUitg}</div>
+              )}
+              {addErr && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm">⚠️ {addErr}</div>}
+              <button onClick={addNewMethode} className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl">Toevoegen</button>
             </div>
           </div>
         </div>
-        {isOwnSchool && (
-          <button onClick={onEdit} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700">
-            ✏️ Bewerken
-          </button>
-        )}
-      </div>
+      )}
 
-      {/* Methodes per vak */}
-      {vakken.map(vak => {
-        const vakData = schoolData[vak] || {};
-        const hasData = niveaus.some(niv => vakData[niv]);
-        
-        return (
-          <div key={vak} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className={`p-4 border-b border-slate-100 bg-gradient-to-r ${kleuren[vak]} bg-opacity-10`}>
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-8 rounded-full bg-gradient-to-b ${kleuren[vak]}`}></div>
-                <h3 className="font-bold text-slate-800">{vak}</h3>
-              </div>
+      {/* Modal: Export */}
+      {modal==='exp' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setModal(null)}>
+          <div className="absolute inset-0 bg-black/50"/>
+          <div className="relative w-full max-w-md bg-white rounded-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between p-6 border-b">
+              <h3 className="text-lg font-bold">📥 Exporteren</h3>
+              <button onClick={() => setModal(null)} className="p-2 hover:bg-slate-100 rounded-lg text-xl">✕</button>
             </div>
-            <div className="p-4">
-              {hasData ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {niveaus.map(niv => {
-                    const methode = vakData[niv];
-                    if (!methode) return null;
-                    return (
-                      <div key={niv} className="bg-slate-50 rounded-xl p-3">
-                        <span className="text-xs font-medium text-slate-500 block mb-1">{niveauLabels[niv]}</span>
-                        <span className="text-sm font-medium text-slate-800">{methode}</span>
-                        <span className="text-xs text-slate-400 block">{methodeUitg[methode] || ''}</span>
+            <div className="p-6 space-y-4">
+              <button onClick={() => downloadCSV(true)} className="w-full border-2 rounded-xl p-5 text-left hover:bg-blue-50 flex items-center gap-4">
+                <span className="text-3xl">🏫</span>
+                <div><h4 className="font-bold">Alle scholen</h4><p className="text-sm text-slate-500">Export alle data</p></div>
+              </button>
+              <button onClick={() => downloadCSV(false)} className="w-full border-2 rounded-xl p-5 text-left hover:bg-green-50 flex items-center gap-4">
+                <span className="text-3xl">📄</span>
+                <div><h4 className="font-bold">Alleen {user}</h4><p className="text-sm text-slate-500">Export jouw school</p></div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Geschiedenis */}
+      {modal==='hist' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setModal(null)}>
+          <div className="absolute inset-0 bg-black/50"/>
+          <div className="relative w-full max-w-lg bg-white rounded-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between p-6 border-b">
+              <h3 className="text-lg font-bold flex items-center gap-2">📜 Geschiedenis</h3>
+              <button onClick={() => setModal(null)} className="p-2 hover:bg-slate-100 rounded-lg text-xl">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {hist.length===0 ? <p className="text-center py-12 text-slate-500">Nog geen wijzigingen</p> : (
+                <div className="space-y-3">
+                  {hist.map(h => (
+                    <div key={h.id} className="bg-slate-50 rounded-xl p-4">
+                      <div className="flex justify-between mb-2">
+                        <span className="font-medium">{h.school}</span>
+                        <span className="text-xs text-slate-500">{new Date(h.timestamp).toLocaleDateString('nl-BE')}</span>
                       </div>
-                    );
-                  })}
+                      <p className="text-sm">{h.action}</p>
+                      {h.details && <p className="text-xs text-slate-500">{h.details}</p>}
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <p className="text-slate-400 italic text-sm">Geen methodes ingevuld voor dit vak</p>
               )}
             </div>
           </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ============================================
-// HOOFD APP COMPONENT
-// ============================================
-function App() {
-  const [user, setUser] = React.useState(null);
-  const [view, setView] = React.useState('vak');
-  const [niveau, setNiveau] = React.useState('Alle');
-  const [jaar, setJaar] = React.useState('2025-2026');
-  const [data, setData] = React.useState({});
-  const [methodeUitg, setMethodeUitg] = React.useState({...initMethodes});
-  const [edit, setEdit] = React.useState(false);
-  const [editData, setEditData] = React.useState({});
-  const [modal, setModal] = React.useState(null);
-  const [toast, setToast] = React.useState(null);
-  const [syncStatus, setSyncStatus] = React.useState({ time: null, loading: false });
-  const [history, setHistory] = React.useState([]);
-  const [selectedSchool, setSelectedSchool] = React.useState(null);
-
-  // Add methode modal state
-  const [addNaam, setAddNaam] = React.useState('');
-  const [addUitg, setAddUitg] = React.useState('');
-  const [addErr, setAddErr] = React.useState('');
-
-  // Load data on mount
-  React.useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setData(parsed.data || {});
-      setMethodeUitg(parsed.methodeUitg || {...initMethodes});
-      setHistory(parsed.history || []);
-    }
-  }, []);
-
-  // Save data on change
-  React.useEffect(() => {
-    if (Object.keys(data).length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ data, methodeUitg, history }));
-    }
-  }, [data, methodeUitg, history]);
-
-  // Sync from Google Sheets
-  const syncData = async () => {
-    setSyncStatus({ ...syncStatus, loading: true });
-    try {
-      const res = await fetch(SHEET_URL);
-      const json = await res.json();
-      if (json.data) {
-        setData(json.data);
-        if (json.methodeUitg) setMethodeUitg(json.methodeUitg);
-        setSyncStatus({ time: new Date().toLocaleTimeString('nl-BE'), loading: false });
-        showToast('✅ Gesynchroniseerd!', 'success');
-      }
-    } catch (e) {
-      setSyncStatus({ ...syncStatus, loading: false });
-      showToast('❌ Sync mislukt', 'error');
-    }
-  };
-
-  // Toast helper
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  // Get unique lists
-  const mList = Object.keys(methodeUitg).sort();
-  const uList = [...new Set(Object.values(methodeUitg))].sort();
-
-  // Start edit mode
-  const startEdit = () => {
-    const schoolData = data[user.id] || {};
-    setEditData(JSON.parse(JSON.stringify(schoolData)));
-    setEdit(true);
-    setSelectedSchool(null);
-    setView('vak');
-  };
-
-  // Save edits
-  const saveEdit = () => {
-    const newData = { ...data, [user.id]: editData };
-    setData(newData);
-    
-    // Add to history
-    const entry = { time: new Date().toISOString(), school: user.name, action: 'Methodes bijgewerkt' };
-    setHistory([entry, ...history].slice(0, 50));
-    
-    setEdit(false);
-    showToast('✅ Opgeslagen!');
-  };
-
-  // Add new methode
-  const addMethode = () => {
-    if (!addNaam.trim()) { setAddErr('Vul een naam in'); return; }
-    if (!addUitg.trim()) { setAddErr('Kies een uitgeverij'); return; }
-    if (methodeUitg[addNaam.trim()]) { setAddErr('Deze methode bestaat al'); return; }
-    
-    setMethodeUitg({ ...methodeUitg, [addNaam.trim()]: addUitg.trim() });
-    setModal(null);
-    setAddNaam('');
-    setAddUitg('');
-    setAddErr('');
-    showToast('✅ Methode toegevoegd!');
-  };
-
-  // Export CSV
-  const exportCSV = (allSchools = false) => {
-    let csv = 'School,Vak,Niveau,Methode,Uitgeverij\n';
-    const schoolsToExport = allSchools ? schools : [user];
-    
-    schoolsToExport.forEach(s => {
-      const schoolData = data[s.id] || {};
-      vakken.forEach(vak => {
-        niveaus.forEach(niv => {
-          const methode = schoolData[vak]?.[niv] || '';
-          if (methode) {
-            csv += `"${s.name}","${vak}","${niveauLabels[niv]}","${methode}","${methodeUitg[methode] || ''}"\n`;
-          }
-        });
-      });
-    });
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `methodes-${allSchools ? 'alle-scholen' : user.id}-${jaar}.csv`;
-    a.click();
-    setModal(null);
-  };
-
-  // Count schools using a methode
-  const countSchools = (methode) => {
-    let count = 0;
-    schools.forEach(s => {
-      const schoolData = data[s.id] || {};
-      vakken.forEach(vak => {
-        niveaus.forEach(niv => {
-          if (schoolData[vak]?.[niv] === methode) count++;
-        });
-      });
-    });
-    return count;
-  };
-
-  // Count methodes for a school
-  const countMethodes = (schoolId) => {
-    const schoolData = data[schoolId] || {};
-    let count = 0;
-    vakken.forEach(vak => {
-      niveaus.forEach(niv => {
-        if (schoolData[vak]?.[niv]) count++;
-      });
-    });
-    return count;
-  };
-
-  // Render login if not logged in
-  if (!user) return <Login onLogin={setUser} />;
-
-  // Filter by niveau
-  const filterNiveau = (niv) => niveau === 'Alle' || niveau === niv;
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-4 right-4 px-6 py-3 rounded-xl shadow-lg z-50 ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white font-medium`}>
-          {toast.msg}
         </div>
       )}
 
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-xl">📚</div>
+      {/* Main App */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <header className="bg-white border-b sticky top-0 z-40 shadow-sm">
+          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-4">
+              {school && <button onClick={() => {setSchool(null);setEdit(false);}} className="p-2 hover:bg-slate-100 rounded-lg text-xl">←</button>}
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-xl">📚</div>
               <div>
-                <h1 className="font-bold text-slate-800">Methodes</h1>
-                <p className="text-xs text-slate-500">{user.name}</p>
+                <h1 className="text-xl font-bold">{school || 'Methodes'}</h1>
+                {school && <p className="text-sm text-slate-500">Sint-Rembert</p>}
               </div>
             </div>
-            
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* Sync button */}
-              <button onClick={syncData} disabled={syncStatus.loading} className="p-2 hover:bg-slate-100 rounded-xl transition-colors" title="Synchroniseren">
-                <span className={syncStatus.loading ? 'animate-spin inline-block' : ''}>🔄</span>
+              <button 
+                onClick={syncFromSheet} 
+                disabled={syncing}
+                className={`p-2 rounded-lg flex items-center gap-1 ${syncing ? 'bg-blue-100 text-blue-600' : 'hover:bg-slate-100'}`}
+                title="Synchroniseer met Google Sheets"
+              >
+                <span className={syncing ? 'animate-spin' : ''}>🔄</span>
               </button>
               
               {/* Sync status */}
-              <div className="text-xs text-slate-500 hidden sm:block">
-                {syncStatus.time ? `☁️ ${syncStatus.time}` : '☁️ Niet gesync'}
+              <div className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${syncError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                {syncError ? '⚠️' : '☁️'}
+                {lastSync ? ` ${lastSync.toLocaleTimeString('nl-BE', {hour:'2-digit', minute:'2-digit'})}` : ' Niet gesync'}
               </div>
+
+              <button onClick={() => setModal('hist')} className="p-2 hover:bg-slate-100 rounded-lg text-xl">📜</button>
+              <button onClick={() => setModal('exp')} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center gap-2">📥 CSV</button>
               
-              {/* Jaar selector */}
-              <select value={jaar} onChange={e => setJaar(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-sm">
-                <option value="2025-2026">2025-2026</option>
-                <option value="2026-2027">2026-2027</option>
-              </select>
-              
-              {/* Export button */}
-              <button onClick={() => setModal('export')} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-sm font-medium transition-colors">
-                📥 Export
-              </button>
-              
-              {/* History button */}
-              <button onClick={() => setModal('history')} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-sm font-medium transition-colors">
-                📋
-              </button>
-              
-              {/* Logout */}
-              <button onClick={() => { setUser(null); setSelectedSchool(null); }} className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-medium transition-colors">
-                Uitloggen
-              </button>
+              <div className="flex border rounded-xl p-1">
+                {['2025-2026','2026-2027'].map(j => (
+                  <button key={j} onClick={() => setJaar(j)} className={'px-3 py-1.5 rounded-lg text-sm font-bold '+(jaar===j?'bg-indigo-600 text-white':'text-slate-500')}>{j}</button>
+                ))}
+              </div>
+              <button onClick={() => {setSchool(user);setEdit(false);}} className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">{user}</button>
+              <button onClick={() => {setUser(null);setSchool(null);setEdit(false);}} className="p-2 hover:bg-red-50 rounded-lg text-xl">🚪</button>
             </div>
           </div>
           
-          {/* Views - hide when viewing school detail */}
-          {!selectedSchool && (
-            <>
-              <div className="flex gap-2 mt-4 flex-wrap">
-                {['vak', 'school', 'uitgeverij', 'methode', 'tabel'].map(v => (
-                  <button key={v} onClick={() => setView(v)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${view === v ? 'bg-indigo-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
-                    {v === 'vak' ? 'Per vak' : v === 'school' ? 'Per school' : v === 'uitgeverij' ? 'Per uitgeverij' : v === 'methode' ? 'Per methode' : 'Tabel'}
-                  </button>
-                ))}
+          {!edit && (
+            <div className="border-t bg-slate-50/50">
+              <div className="max-w-7xl mx-auto px-6 py-2 flex flex-wrap gap-2 justify-between">
+                <div className="flex gap-1 bg-white border rounded-lg p-1">
+                  {viewButtons.map(([v,label]) => (
+                    <button key={v} onClick={() => setView(v)} className={'px-3 py-1.5 rounded text-sm '+(view===v?'bg-blue-600 text-white':'text-slate-600')}>{label}</button>
+                  ))}
+                </div>
+                <div className="flex gap-1 bg-white border rounded-lg p-1">
+                  {nivButtons.map(n => (
+                    <button key={n} onClick={() => setNiv(n)} className={'px-3 py-1.5 rounded text-sm '+(niv===n?'bg-slate-800 text-white':'text-slate-600')}>{n==='alle'?'Alle':niveauLabels[n]}</button>
+                  ))}
+                </div>
+                {school===user && <button onClick={() => setEdit(true)} className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm flex items-center gap-2">✏️ Bewerken</button>}
               </div>
-              
-              {/* Niveau filter */}
-              <div className="flex gap-2 mt-3 flex-wrap">
-                {['Alle', ...niveaus].map(n => (
-                  <button key={n} onClick={() => setNiveau(n)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${niveau === n ? 'bg-purple-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}>
-                    {n === 'Alle' ? 'Alle niveaus' : niveauLabels[n] || n}
-                  </button>
-                ))}
-              </div>
-            </>
+            </div>
           )}
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {/* School Detail View */}
-        {selectedSchool && (
-          <SchoolDetail 
-            school={selectedSchool} 
-            data={data} 
-            methodeUitg={methodeUitg}
-            onBack={() => setSelectedSchool(null)}
-            isOwnSchool={selectedSchool.id === user.id}
-            onEdit={startEdit}
-          />
-        )}
-
-        {/* Edit mode banner */}
-        {edit && !selectedSchool && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 flex items-center justify-between">
-            <span className="text-yellow-800 font-medium">✏️ Je bent aan het bewerken</span>
-            <div className="flex gap-2">
-              <button onClick={() => setEdit(false)} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50">Annuleren</button>
-              <button onClick={saveEdit} className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700">Opslaan</button>
+          
+          {edit && (
+            <div className="border-t bg-green-50">
+              <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between">
+                <span className="font-medium text-green-700 flex items-center gap-2">✏️ Bewerken: {school}</span>
+                <button onClick={() => setEdit(false)} className="px-4 py-1.5 bg-white border rounded-lg text-sm">Klaar</button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </header>
 
-        {/* VIEW: Per vak */}
-        {view === 'vak' && !selectedSchool && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-slate-800">Methodes per vak - {user.name}</h2>
-              {!edit && <button onClick={startEdit} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700">✏️ Bewerken</button>}
-            </div>
-            
-            {vakken.map(vak => (
-              <div key={vak} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div className="p-4 border-b border-slate-100 bg-slate-50">
-                  <h3 className="font-bold text-slate-800">{vak}</h3>
-                </div>
-                <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {niveaus.filter(filterNiveau).map(niv => {
-                    const schoolData = edit ? editData : (data[user.id] || {});
-                    const methode = schoolData[vak]?.[niv] || '';
-                    
-                    return (
-                      <div key={niv} className="bg-slate-50 rounded-xl p-3">
-                        <span className="text-xs font-medium text-slate-500 block mb-2">{niveauLabels[niv]}</span>
-                        {edit ? (
-                          <select 
-                            value={methode} 
-                            onChange={e => {
-                              const newEditData = {...editData};
-                              if (!newEditData[vak]) newEditData[vak] = {};
-                              newEditData[vak][niv] = e.target.value;
-                              setEditData(newEditData);
-                            }}
-                            className="w-full p-2 border border-slate-200 rounded-lg text-sm"
-                          >
-                            <option value="">Geen methode</option>
-                            {mList.map(m => <option key={m} value={m}>{m}</option>)}
-                          </select>
-                        ) : (
-                          <span className={`text-sm ${methode ? 'text-slate-800 font-medium' : 'text-slate-400 italic'}`}>
-                            {methode || 'Geen methode'}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+        <main className="max-w-7xl mx-auto px-6 py-6">
+          {/* Edit mode */}
+          {edit && form ? (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex items-start gap-3">
+                <span className="text-2xl">ℹ️</span>
+                <div>
+                  <h3 className="font-semibold text-blue-800 mb-2">Methode niet in de lijst?</h3>
+                  <p className="text-sm text-blue-700 mb-3">Ga naar het tabblad "Per methode" en voeg daar eerst de nieuwe methode toe. Daarna kun je deze hier selecteren.</p>
+                  <button onClick={() => {setEdit(false); setView('methode');}} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm flex items-center gap-2">📚 Ga naar Per methode</button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* VIEW: Per school */}
-        {view === 'school' && !selectedSchool && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-slate-800">Alle scholen</h2>
-            <p className="text-slate-500 text-sm">Klik op een school om de methodes te bekijken</p>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {schools.map(s => {
-                const count = countMethodes(s.id);
-                
+              {vakken.map((v, i) => {
+                const vb = vakBases[i];
+                const vn = getNiveaus(vb);
+                const kl = vakKleuren[v];
                 return (
-                  <button 
-                    key={s.id} 
-                    onClick={() => setSelectedSchool(s)}
-                    className={`bg-white rounded-2xl border p-5 text-left hover:shadow-lg hover:border-indigo-300 transition-all ${s.id === user.id ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-200'}`}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-lg">🏫</div>
-                      <div>
-                        <h3 className="font-bold text-slate-800">{s.name}</h3>
-                        {s.id === user.id && <span className="text-xs text-indigo-600 font-medium">Jouw school</span>}
-                      </div>
+                  <div key={v} className={kl[0]+' '+kl[1]+' border rounded-2xl'}>
+                    <div className="p-4 border-b border-white/50 flex items-center gap-3">
+                      <div className={'w-10 h-10 '+kl[3]+' rounded-xl flex items-center justify-center text-white font-bold'}>{v[0]}</div>
+                      <h3 className={'text-lg font-bold '+kl[2]}>{v}</h3>
                     </div>
-                    <p className="text-sm text-slate-500">{count} methode(s)</p>
-                  </button>
+                    <div className={'p-4 grid gap-4 sm:grid-cols-2 '+(vn.length===3?'lg:grid-cols-3':'lg:grid-cols-4')}>
+                      {vn.map(n => {
+                        const nkl = niveauKleuren[n] || ['bg-gray-100','text-gray-700'];
+                        const arr = form[vb]?.[n] || [];
+                        return (
+                          <div key={n} className="bg-white rounded-xl p-4">
+                            <span className={nkl[0]+' '+nkl[1]+' inline-block text-xs px-2 py-0.5 rounded-full mb-3'}>{niveauLabels[n]}</span>
+                            <div className="flex flex-wrap gap-2 mb-3 min-h-[32px]">
+                              {arr.map(m => (
+                                <span key={m} className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-full text-sm">
+                                  {m}
+                                  <button onClick={() => rmMethode(vb,n,m)} className="hover:text-red-500">✕</button>
+                                </span>
+                              ))}
+                            </div>
+                            <select onChange={e => {addMethode(vb,n,e.target.value);e.target.value='';}} defaultValue="" className="w-full p-2 border rounded-lg text-sm">
+                              <option value="">+ Toevoegen...</option>
+                              {mList.filter(m => !arr.includes(m)).map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {formChanged && (
+                <div className="sticky bottom-4">
+                  <button onClick={saveForm} className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg">💾 Opslaan</button>
+                </div>
+              )}
+            </div>
+          ) : view==='vak' ? (
+            <div>
+              {vakken.map((v, i) => {
+                const vn = getNiveaus(vakBases[i]);
+                const items = Object.values(perVak[v]||{}).filter(x => vn.includes(x.n)).sort((a,b) => niveauOrder[a.n]-niveauOrder[b.n]||a.m.localeCompare(b.m));
+                const kl = vakKleuren[v];
+                return (
+                  <div key={v} className={kl[0]+' '+kl[1]+' border rounded-2xl mb-6'}>
+                    <div className="p-5 border-b border-white/50 flex items-center gap-3">
+                      <div className={'w-10 h-10 '+kl[3]+' rounded-xl flex items-center justify-center text-white font-bold'}>{v[0]}</div>
+                      <div><h3 className={'text-lg font-bold '+kl[2]}>{v}</h3><p className="text-sm text-slate-500">{items.length} methode(s)</p></div>
+                    </div>
+                    <div className="p-5">
+                      {items.length===0 ? <p className="text-slate-500 text-center py-4">Geen methodes</p> : (
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {items.map(x => <Card key={x.m+'|'+x.n} m={x.m} n={x.n} cnt={x.s.length} mu={mu} showCnt={!school}/>)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
-          </div>
-        )}
-
-        {/* VIEW: Per uitgeverij */}
-        {view === 'uitgeverij' && !selectedSchool && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-slate-800">Per uitgeverij</h2>
-            {uList.map(uitg => {
-              const methodes = mList.filter(m => methodeUitg[m] === uitg);
-              return (
-                <div key={uitg} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                  <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-lg">📖</div>
-                    <div>
-                      <h3 className="font-bold text-slate-800">{uitg}</h3>
-                      <p className="text-xs text-slate-500">{methodes.length} methode(s)</p>
+          ) : view==='cards' ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {schools.map(s => {
+                let tot = 0;
+                vakBases.forEach(vb => {
+                  const fn = niv==='alle' ? getNiveaus(vb) : (getNiveaus(vb).includes(niv)?[niv]:[]);
+                  fn.forEach(n => { tot += (cur[s]?.[vb]?.[n]||[]).length; });
+                });
+                return (
+                  <div key={s} className="bg-white rounded-2xl border hover:shadow-lg transition-all">
+                    <button onClick={() => setSchool(s)} className="w-full text-left p-5 flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-xl">🏫</div>
+                      <div><h3 className="font-bold">{s}</h3><p className="text-sm text-slate-500">{tot} methode(s)</p></div>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : view==='table' ? (
+            <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-100">
+                      <th className="px-4 py-3 text-left text-sm font-bold sticky left-0 bg-slate-100 border-b-2">School</th>
+                      {vakken.map(v => <th key={v} className="px-3 py-3 text-left text-sm font-bold border-b-2 whitespace-nowrap">{v}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schools.map((s, idx) => (
+                      <tr key={s} className={(idx%2?'bg-slate-50/50':'bg-white')+' hover:bg-blue-50/50'}>
+                        <td onClick={() => setSchool(s)} className={'px-4 py-3 font-semibold sticky left-0 cursor-pointer border-r '+(idx%2?'bg-slate-50':'bg-white')}>
+                          <div className="flex items-center gap-2">🏫 {s}</div>
+                        </td>
+                        {vakBases.map(vb => {
+                          const fn = niv==='alle' ? getNiveaus(vb) : (getNiveaus(vb).includes(niv)?[niv]:[]);
+                          const msArr = [];
+                          fn.forEach(n => { (cur[s]?.[vb]?.[n]||[]).forEach(m => {if(!msArr.includes(m))msArr.push(m);}); });
+                          return (
+                            <td key={vb} className="px-3 py-2">
+                              {msArr.length>0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {msArr.slice(0,2).map(m => {
+                                    const cnt = mCnt[vb+'|'+m]||0;
+                                    return (
+                                      <span key={m} className="inline-flex items-center text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                                        {m}
+                                        <span className="bg-blue-600 text-white px-1.5 rounded-full ml-1 text-xs">{cnt}</span>
+                                      </span>
+                                    );
+                                  })}
+                                  {msArr.length>2 && <span className="text-xs px-2 py-1 bg-slate-200 rounded-full">+{msArr.length-2}</span>}
+                                </div>
+                              ) : <span className="text-slate-300">—</span>}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : view==='uitgeverij' ? (
+            <div>
+              {Object.keys(perUitg).sort().map(u => {
+                const items = Object.values(perUitg[u]).sort((a,b) => niveauOrder[a.n]-niveauOrder[b.n]||a.m.localeCompare(b.m));
+                const kl = uitgKleuren[u] || uitgKleuren.Onbekend;
+                return (
+                  <div key={u} className={kl[0]+' '+kl[1]+' border rounded-2xl mb-6'}>
+                    <div className="p-5 border-b border-white/50 flex items-center gap-3">
+                      <div className={'w-10 h-10 '+kl[3]+' rounded-xl flex items-center justify-center text-white text-xl'}>📖</div>
+                      <div><h3 className={'text-lg font-bold '+kl[2]}>{u}</h3><p className="text-sm text-slate-500">{items.length} methode(s)</p></div>
+                    </div>
+                    <div className="p-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {items.map(x => <Card key={x.m+'|'+x.v+'|'+x.n} m={x.m} n={x.n} v={x.v} u={u} cnt={x.s.length} mu={mu} showCnt={!school}/>)}
                     </div>
                   </div>
-                  <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    {methodes.map(m => (
-                      <div key={m} className="bg-slate-50 rounded-xl p-3">
-                        <span className="font-medium text-slate-800">{m}</span>
-                        <span className="text-xs text-slate-500 block mt-1">🏫 {countSchools(m)} school(en)</span>
-                      </div>
-                    ))}
-                  </div>
+                );
+              })}
+            </div>
+          ) : view==='methode' ? (
+            <div className="space-y-6">
+              <div className="flex justify-end">
+                <button onClick={() => setModal('add')} className="px-4 py-2 bg-green-600 text-white rounded-xl font-medium flex items-center gap-2">➕ Nieuwe methode</button>
+              </div>
+              <div className="bg-white rounded-2xl border">
+                <div className="p-5 border-b flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-xl">📚</div>
+                  <div><h3 className="text-lg font-bold">Alle methodes (A-Z)</h3><p className="text-sm text-slate-500">{mList.length} methode(s)</p></div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* VIEW: Per methode */}
-        {view === 'methode' && !selectedSchool && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-slate-800">Alle methodes (A-Z)</h2>
-              <button onClick={() => setModal('add')} className="px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700">➕ Nieuwe methode</button>
-            </div>
-            <p className="text-slate-500 text-sm">Staat een methode er niet bij? Voeg ze hier toe. Daarna vind je ze terug in de dropdown bij jouw school.</p>
-            <div className="bg-white rounded-2xl border border-slate-200 p-5">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {mList.map(m => (
-                  <div key={m} className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                    <h4 className="font-semibold text-slate-800 mb-1">{m}</h4>
-                    <p className="text-xs text-slate-500">{methodeUitg[m]}</p>
-                    <p className="text-xs text-slate-400 mt-2">🏫 {countSchools(m)} school(en)</p>
-                  </div>
-                ))}
+                <div className="p-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {mList.map(m => (
+                    <div key={m} className="bg-slate-50 border rounded-xl p-4">
+                      <h4 className="font-semibold mb-1">{m}</h4>
+                      <p className="text-xs text-slate-500">{mu[m]}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* VIEW: Tabel */}
-        {view === 'tabel' && !selectedSchool && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-slate-800">Tabeloverzicht</h2>
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="p-3 text-left font-semibold text-slate-700">Methode</th>
-                    <th className="p-3 text-left font-semibold text-slate-700">Uitgeverij</th>
-                    <th className="p-3 text-center font-semibold text-slate-700">Aantal scholen</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mList.map((m, i) => {
-                    const count = countSchools(m);
-                    return (
-                      <tr key={m} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                        <td className="p-3 font-medium text-slate-800">{m}</td>
-                        <td className="p-3 text-slate-600">{methodeUitg[m]}</td>
-                        <td className="p-3 text-center">
-                          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${count > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-400'}`}>
-                            {count}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* MODAL: Add methode */}
-      {modal === 'add' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">Nieuwe methode toevoegen</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Naam methode</label>
-                <input type="text" value={addNaam} onChange={e => { setAddNaam(e.target.value); setAddErr(''); }} placeholder="Bijv. Pluspunt" className="w-full p-3 border border-slate-200 rounded-xl" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Uitgeverij</label>
-                <select value={addUitg} onChange={e => {
-                  if (e.target.value === '__new__') {
-                    const nieuw = prompt('Naam nieuwe uitgeverij:');
-                    if (nieuw && nieuw.trim()) {
-                      setAddUitg(nieuw.trim());
-                    }
-                  } else {
-                    setAddUitg(e.target.value);
-                  }
-                  setAddErr('');
-                }} className="w-full p-3 border border-slate-200 rounded-xl">
-                  <option value="">Kies uitgeverij...</option>
-                  {uList.map(u => <option key={u} value={u}>{u}</option>)}
-                  <option value="__new__">➕ Nieuwe uitgeverij...</option>
-                </select>
-                {addUitg && !uList.includes(addUitg) && (
-                  <div className="text-sm text-green-600 mt-2">✓ Nieuwe uitgeverij: {addUitg}</div>
-                )}
-              </div>
-              {addErr && <p className="text-red-500 text-sm">{addErr}</p>}
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => { setModal(null); setAddNaam(''); setAddUitg(''); setAddErr(''); }} className="flex-1 py-3 bg-slate-100 rounded-xl font-medium hover:bg-slate-200">Annuleren</button>
-              <button onClick={addMethode} className="flex-1 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700">Toevoegen</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Export */}
-      {modal === 'export' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">Exporteren</h3>
-            <div className="space-y-3">
-              <button onClick={() => exportCSV(false)} className="w-full p-4 bg-slate-50 hover:bg-slate-100 rounded-xl text-left transition-colors">
-                <span className="font-medium text-slate-800">📥 Alleen {user.name}</span>
-                <p className="text-sm text-slate-500 mt-1">Download methodes van jouw school</p>
-              </button>
-              <button onClick={() => exportCSV(true)} className="w-full p-4 bg-slate-50 hover:bg-slate-100 rounded-xl text-left transition-colors">
-                <span className="font-medium text-slate-800">📥 Alle scholen</span>
-                <p className="text-sm text-slate-500 mt-1">Download methodes van alle 15 scholen</p>
-              </button>
-            </div>
-            <button onClick={() => setModal(null)} className="w-full py-3 mt-4 bg-slate-100 rounded-xl font-medium hover:bg-slate-200">Sluiten</button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: History */}
-      {modal === 'history' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 max-h-[80vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-slate-800 mb-4">Geschiedenis</h3>
-            {history.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">Nog geen wijzigingen</p>
-            ) : (
-              <div className="space-y-2">
-                {history.map((h, i) => (
-                  <div key={i} className="p-3 bg-slate-50 rounded-xl">
-                    <p className="font-medium text-slate-800">{h.school}</p>
-                    <p className="text-sm text-slate-500">{h.action}</p>
-                    <p className="text-xs text-slate-400 mt-1">{new Date(h.time).toLocaleString('nl-BE')}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setModal(null)} className="w-full py-3 mt-4 bg-slate-100 rounded-xl font-medium hover:bg-slate-200">Sluiten</button>
-          </div>
-        </div>
-      )}
+          ) : null}
+        </main>
+      </div>
     </div>
   );
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-    </script>
+  </script>
 </body>
 </html>
