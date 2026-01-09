@@ -194,6 +194,82 @@ function emptyV() {
   return o;
 }
 
+// Initiële data voor scholen
+const initData = {
+  "De Boomhut": { ...emptyV(), schrift: { l1: ["Luna"], l2_3: ["Luna"], l4_6: [] } },
+  "Ten Parke": {
+    wiskunde: { p: [], k: [], l1: [], l2_6: ["Reken Maar"] },
+    taal: { p: ["Dag Jules"], k: ["Confetti"], l1: ["Veilig leren lezen"], l2_6: ["Talent"] },
+    spelling: { p: [], k: [], l1: ["Tijd voor taal accent"], l2_6: ["Tijd voor taal accent"] },
+    schrift: { l1: [], l2_3: [], l4_6: [] },
+    frans: { p: [], k: [], l1: [], l2_6: ["Zouff"] },
+    wero: { p: [], k: [], l1: ["Wouw"], l2_6: ["Wouw"] },
+    godsdienst: { p: ["Sterren aan de hemel"], k: ["Sterren aan de hemel"], l1: ["Sterren aan de hemel"], l2_6: ["Sterren aan de hemel"] },
+    begrijpend_lezen: { p: [], k: [], l1: [], l2_6: ["Talent+", "Tekstduikers"] },
+    sova: { p: [], k: ["Kat en Hond"], l1: [], l2_6: ["De Geluksvogels"] },
+    motoriek: { p: [], k: ["Krullenbol"], l1: ["Karakter"], l2_6: ["Karakter"] }
+  },
+  "De Leeuw": {
+    wiskunde: { p: [], k: [], l1: [], l2_6: ["Katapult"] },
+    taal: { p: [], k: [], l1: [], l2_6: ["Talent"] },
+    spelling: { p: [], k: [], l1: [], l2_6: ["Tijd voor taal accent"] },
+    schrift: { l1: [], l2_3: [], l4_6: [] },
+    frans: { p: [], k: [], l1: [], l2_6: [] },
+    wero: { p: [], k: [], l1: [], l2_6: ["Wereldkanjers"] },
+    godsdienst: { p: [], k: [], l1: [], l2_6: ["Sterren aan de hemel"] },
+    begrijpend_lezen: { p: [], k: [], l1: [], l2_6: [] },
+    sova: { p: [], k: [], l1: [], l2_6: [] },
+    motoriek: { p: [], k: ["Krullenbol"], l1: [], l2_6: [] }
+  },
+  "De Tweesprong": {
+    wiskunde: { p: [], k: [], l1: [], l2_6: ["Katapult"] },
+    taal: { p: ["Dag Jules"], k: ["Pistache"], l1: ["Taalkanjers"], l2_6: ["Taalkanjers"] },
+    spelling: { p: [], k: [], l1: ["Taalkanjers"], l2_6: ["Taalkanjers"] },
+    schrift: { l1: [], l2_3: [], l4_6: [] },
+    frans: { p: [], k: [], l1: [], l2_6: [] },
+    wero: { p: [], k: [], l1: [], l2_6: ["Wereldkanjers"] },
+    godsdienst: { p: [], k: ["TOV"], l1: ["Jezus leeft", "Sterren aan de hemel"], l2_6: ["Jezus leeft", "Sterren aan de hemel"] },
+    begrijpend_lezen: { p: [], k: [], l1: [], l2_6: [] },
+    sova: { p: [], k: [], l1: [], l2_6: [] },
+    motoriek: { p: [], k: ["Krullenbol"], l1: ["Karakter"], l2_6: ["Karakter"] }
+  },
+  "'t Vlot": {
+    wiskunde: { p: [], k: [], l1: [], l2_6: ["Katapult", "Wiskanjers"] },
+    taal: { p: [], k: [], l1: ["Veilig leren lezen"], l2_6: ["Taalkanjers"] },
+    spelling: { p: [], k: [], l1: ["Taalkanjers"], l2_6: ["Taalkanjers"] },
+    schrift: { l1: [], l2_3: [], l4_6: [] },
+    frans: { p: [], k: [], l1: [], l2_6: [] },
+    wero: { p: [], k: [], l1: [], l2_6: ["Wereldkanjers"] },
+    godsdienst: { p: [], k: [], l1: [], l2_6: ["TOV"] },
+    begrijpend_lezen: { p: [], k: [], l1: [], l2_6: [] },
+    sova: { p: [], k: [], l1: [], l2_6: [] },
+    motoriek: { p: [], k: ["Krullenbol"], l1: [], l2_6: ["Karakter"] }
+  },
+  "De Schatkist": {
+    wiskunde: { p: [], k: [], l1: [], l2_6: ["Kadet"] },
+    taal: { p: [], k: [], l1: ["Ik lees met Hup"], l2_6: ["Verrekijker", "Labo", "Kwartierlezen"] },
+    spelling: { p: [], k: [], l1: [], l2_6: ["Verrekijker", "Labo"] },
+    schrift: { l1: [], l2_3: [], l4_6: [] },
+    frans: { p: [], k: [], l1: [], l2_6: [] },
+    wero: { p: [], k: [], l1: ["Wereldkanjers", "Labo"], l2_6: ["Wereldkanjers"] },
+    godsdienst: { p: [], k: ["Sterren aan de hemel"], l1: [], l2_6: ["Sterren aan de hemel"] },
+    begrijpend_lezen: { p: [], k: [], l1: [], l2_6: ["Verrekijker", "Tekstduikers"] },
+    sova: { p: [], k: ["Cas en Lisa"], l1: ["Cirkelen"], l2_6: ["Cirkelen"] },
+    motoriek: { p: [], k: ["Krullenbol"], l1: ["Karakter"], l2_6: ["Karakter"] }
+  }
+};
+
+/**
+ * Creeer dataset met initiële data
+ */
+function createInitialData() {
+  const d = {};
+  schools.forEach((s) => {
+    d[s] = initData[s] || emptyV();
+  });
+  return d;
+}
+
 /**
  * Creeer lege dataset voor alle scholen
  */
@@ -423,7 +499,7 @@ function App() {
   const [niv, setNiv] = useState('alle');
   const [jaar, setJaar] = useState('2025-2026');
   const [toast, setToast] = useState(null);
-  const [data, setData] = useState({ '2025-2026': createEmpty(), '2026-2027': createEmpty() });
+  const [data, setData] = useState({ '2025-2026': createInitialData(), '2026-2027': createEmpty() });
   const [mu, setMu] = useState(defaultMU);
   const [modal, setModal] = useState(null);
   const [hist, setHist] = useState([]);
