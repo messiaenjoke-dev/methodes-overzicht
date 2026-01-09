@@ -104,6 +104,7 @@ const Icon = ({name, className = "w-5 h-5"}) => {
     History: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
     Home: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>,
     RefreshCw: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>,
+    Trash: <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
   };
   return icons[name] || null;
 };
@@ -206,6 +207,7 @@ function App() {
   const [formChanged, setFormChanged] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [cellPopup, setCellPopup] = useState(null);
+  const [deleteMethode, setDeleteMethode] = useState(null);
 
   const cur = data[jaar];
   const mList = useMemo(() => Object.keys(mu).sort(), [mu]);
@@ -501,6 +503,37 @@ function App() {
     setToast({m:'Gedownload!',t:'s'});
   };
 
+  // Delete methode function
+  const confirmDeleteMethode = async (methodeName) => {
+    // Check if method is used by any school
+    let usedBy = [];
+    schools.forEach(s => {
+      vakBases.forEach(vb => {
+        getNiveaus(vb).forEach(n => {
+          if(cur[s]?.[vb]?.[n]?.includes(methodeName)) {
+            if(!usedBy.includes(s)) usedBy.push(s);
+          }
+        });
+      });
+    });
+    
+    if(usedBy.length > 0) {
+      setToast({m:`Kan niet verwijderen: methode wordt gebruikt door ${usedBy.length} school(en)`,t:'e'});
+      setDeleteMethode(null);
+      return;
+    }
+    
+    // Remove from mu
+    const newMu = {...mu};
+    delete newMu[methodeName];
+    
+    const h = {id: Date.now(), timestamp: new Date().toISOString(), school: user, action: 'Methode verwijderd', details: methodeName, jaar};
+    
+    if(await save(data, newMu, h)) {
+      setDeleteMethode(null);
+    }
+  };
+
   const viewButtons = school 
     ? [['vak','Per vak'],['cards','Per school'],['uitgeverij','Per uitgeverij'],['methode','Per methode']]
     : [['vak','Per vak'],['cards','Per school'],['uitgeverij','Per uitgeverij'],['methode','Per methode'],['table','Tabel']];
@@ -644,6 +677,32 @@ function App() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteMethode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDeleteMethode(null)}>
+          <div className="absolute inset-0 bg-black/50"/>
+          <div className="relative w-full max-w-md bg-white rounded-2xl p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2 text-red-600"><Icon name="Trash" className="w-5 h-5"/>Methode verwijderen</h2>
+              <button onClick={() => setDeleteMethode(null)} className="p-2 hover:bg-slate-100 rounded-lg"><Icon name="X" className="w-5 h-5"/></button>
+            </div>
+            <p className="text-slate-600 mb-2">Weet je zeker dat je deze methode wilt verwijderen?</p>
+            <div className="bg-slate-100 rounded-xl p-4 mb-4">
+              <h4 className="font-bold">{deleteMethode}</h4>
+              <p className="text-sm text-slate-500">{mu[deleteMethode]}</p>
+            </div>
+            <p className="text-sm text-amber-600 mb-4 flex items-center gap-2">
+              <Icon name="AlertCircle" className="w-4 h-4"/>
+              Let op: dit kan alleen als de methode niet door scholen wordt gebruikt.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteMethode(null)} className="flex-1 py-2 border rounded-xl font-medium">Annuleren</button>
+              <button onClick={() => confirmDeleteMethode(deleteMethode)} className="flex-1 py-2 bg-red-600 text-white rounded-xl font-medium">Verwijderen</button>
             </div>
           </div>
         </div>
@@ -933,12 +992,33 @@ function App() {
                   <div><h3 className="text-lg font-bold">Alle methodes (A-Z)</h3><p className="text-sm text-slate-500">{mList.length} methode(s)</p></div>
                 </div>
                 <div className="p-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {mList.map(m => (
-                    <div key={m} className="bg-slate-50 border rounded-xl p-4">
-                      <h4 className="font-semibold mb-1">{m}</h4>
-                      <p className="text-xs text-slate-500">{mu[m]}</p>
-                    </div>
-                  ))}
+                  {mList.map(m => {
+                    // Check how many schools use this method
+                    let useCount = 0;
+                    schools.forEach(s => {
+                      vakBases.forEach(vb => {
+                        getNiveaus(vb).forEach(n => {
+                          if(cur[s]?.[vb]?.[n]?.includes(m)) useCount++;
+                        });
+                      });
+                    });
+                    return (
+                      <div key={m} className="bg-slate-50 border rounded-xl p-4 flex justify-between items-start group">
+                        <div>
+                          <h4 className="font-semibold mb-1">{m}</h4>
+                          <p className="text-xs text-slate-500">{mu[m]}</p>
+                          {useCount > 0 && <p className="text-xs text-blue-600 mt-1">{useCount}x in gebruik</p>}
+                        </div>
+                        <button 
+                          onClick={() => setDeleteMethode(m)} 
+                          className={`p-1.5 rounded-lg transition-all ${useCount > 0 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+                          title={useCount > 0 ? 'Kan niet verwijderen: in gebruik' : 'Verwijderen'}
+                        >
+                          <Icon name="Trash" className="w-4 h-4"/>
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
