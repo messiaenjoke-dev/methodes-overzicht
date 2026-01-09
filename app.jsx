@@ -604,21 +604,34 @@ function App() {
   }, []);
 
   /**
-   * Initial load: probeer cloud, fall back naar cache
+   * Initial load: gebruik initiële data, laad alleen extra wijzigingen uit cache
    */
   useEffect(() => {
     async function init() {
       setLoading(true);
-      // Laad eerst cache voor snelle weergave
-      loadFromCache();
-      // Dan probeer cloud sync
+      // Start met initiële data (al ingesteld via useState)
+      // Laad alleen aanvullende methode-uitgeverij mappings uit cache
+      try {
+        const cached = localStorage.getItem('methodes-cache');
+        if (cached) {
+          const p = JSON.parse(cached);
+          // Alleen extra methode-uitgeverij mappings laden
+          if (p.mu && Object.keys(p.mu).length > 0) {
+            setMu(prev => ({ ...defaultMU, ...prev, ...p.mu }));
+          }
+          if (p.hist) setHist(p.hist);
+        }
+      } catch (e) {
+        console.error('Fout bij laden cache:', e);
+      }
+      // Cloud sync alleen als geconfigureerd
       if (isApiConfigured()) {
         await loadFromCloud();
       }
       setLoading(false);
     }
     init();
-  }, [loadFromCache, loadFromCloud]);
+  }, [loadFromCloud]);
 
   /**
    * Handmatige sync
