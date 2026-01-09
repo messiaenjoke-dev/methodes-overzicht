@@ -517,6 +517,13 @@ function App() {
   const mList = useMemo(() => Object.keys(mu).sort(), [mu]);
   const uList = useMemo(() => [...new Set(Object.values(mu))].sort(), [mu]);
 
+  // DEBUG: Log data at startup
+  useEffect(() => {
+    console.log('=== DEBUG: App geladen ===');
+    console.log('Data voor Ten Parke:', data['2025-2026']['Ten Parke']);
+    console.log('Wiskunde methodes:', data['2025-2026']['Ten Parke']?.wiskunde);
+  }, []);
+
   // ============================================================================
   // DATA LADEN
   // ============================================================================
