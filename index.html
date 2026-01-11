@@ -174,7 +174,7 @@ function Card({m, n, v, u, cnt, mu, showCnt}) {
       </div>
       {v && <p className="text-xs text-slate-600 mb-1">{v}</p>}
       <p className="text-xs text-slate-500 mb-2">{u || mu[m] || '?'}</p>
-      {showCnt && <div className="text-sm text-slate-500 flex items-center gap-1"><Icon name="School" className="w-3.5 h-3.5"/>{cnt} school{cnt!==1?'en':''}</div>}
+      {showCnt && <div className="text-sm text-slate-500 flex items-center gap-1"><Icon name="School" className="w-3.5 h-3.5"/>{cnt} {cnt===1?'school':'scholen'}</div>}
     </div>
   );
 }
@@ -1100,7 +1100,7 @@ function App() {
                                             <span className="font-medium text-sm">{item.m}</span>
                                             <span className={`${nkl[0]} ${nkl[1]} text-xs px-2 py-0.5 rounded-full ml-2`}>{niveauLabels[item.n]}</span>
                                           </div>
-                                          <span className="text-xs text-slate-500">{cnt} school{cnt!==1?'en':''}</span>
+                                          <span className="text-xs text-slate-500">{cnt} {cnt===1?'school':'scholen'}</span>
                                         </div>
                                       );
                                     })}
