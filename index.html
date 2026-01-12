@@ -201,6 +201,8 @@ function App() {
   const [newUitg, setNewUitg] = useState('');
   const [showNewUitg, setShowNewUitg] = useState(false);
   const [addVak, setAddVak] = useState('');
+  const [newVak, setNewVak] = useState('');
+  const [showNewVak, setShowNewVak] = useState(false);
   const [addNiv, setAddNiv] = useState([]);
   const [addToSchool, setAddToSchool] = useState(true);
   const [form, setForm] = useState(null);
@@ -447,23 +449,30 @@ function App() {
   const addNewMethode = async () => {
     const tn = addNaam.trim();
     const finalUitg = addUitg === '__new__' ? newUitg.trim() : addUitg;
+    const finalVak = addVak === '__new__' ? newVak.trim() : addVak;
+    
     if(!tn) { setAddErr('Vul naam in'); return; }
     if(!finalUitg) { setAddErr('Kies of vul uitgeverij in'); return; }
     if(mu[tn]) { setAddErr('Methode bestaat al'); return; }
     
-    if(addToSchool && addVak && addNiv.length === 0) {
+    if(addToSchool && finalVak && addNiv.length === 0) {
       setAddErr('Selecteer minstens één niveau'); 
       return; 
+    }
+    
+    if(addToSchool && addVak === '__new__' && !newVak.trim()) {
+      setAddErr('Vul de naam van het nieuwe vak in');
+      return;
     }
     
     const newMu = {...mu, [tn]: finalUitg};
     let newData = null;
     let details = tn + ' (' + finalUitg + ')';
     
-    if(addToSchool && addVak && addNiv.length > 0) {
+    if(addToSchool && finalVak && addNiv.length > 0) {
       newData = JSON.parse(JSON.stringify(data));
-      const vbIndex = vakken.indexOf(addVak);
-      const vb = vakBases[vbIndex];
+      // Voor nieuw vak: gebruik lowercase met underscores als vb
+      const vb = addVak === '__new__' ? newVak.trim().toLowerCase().replace(/\s+/g, '_') : vakBases[vakken.indexOf(addVak)];
       addNiv.forEach(n => {
         if(!newData[jaar][user][vb]) newData[jaar][user][vb] = {};
         if(!newData[jaar][user][vb][n]) newData[jaar][user][vb][n] = [];
@@ -471,7 +480,7 @@ function App() {
           newData[jaar][user][vb][n].push(tn);
         }
       });
-      details += ' → ' + user + ' / ' + addVak + ' / ' + addNiv.map(n => niveauLabels[n]).join(', ');
+      details += ' → ' + user + ' / ' + finalVak + ' / ' + addNiv.map(n => niveauLabels[n]).join(', ');
     }
     
     const h = {id: Date.now(), timestamp: new Date().toISOString(), school: user, action: 'Methode toegevoegd', details, jaar};
@@ -486,6 +495,8 @@ function App() {
       setNewUitg('');
       setShowNewUitg(false);
       setAddVak('');
+      setNewVak('');
+      setShowNewVak(false);
       setAddNiv([]);
       setAddToSchool(true);
       setAddErr('');
@@ -700,12 +711,12 @@ function App() {
 
       {/* Add Modal */}
       {modal==='add' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => {setModal(null);setShowNewUitg(false);setNewUitg('');setAddVak('');setAddNiv([]);setAddToSchool(true);}}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => {setModal(null);setShowNewUitg(false);setNewUitg('');setAddVak('');setNewVak('');setShowNewVak(false);setAddNiv([]);setAddToSchool(true);}}>
           <div className="absolute inset-0 bg-black/50"/>
           <div className="relative w-full max-w-md bg-white rounded-2xl p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between mb-6">
               <h2 className="text-xl font-bold flex items-center gap-2"><Icon name="Plus" className="w-5 h-5 text-green-600"/>Nieuwe methode</h2>
-              <button onClick={() => {setModal(null);setShowNewUitg(false);setNewUitg('');setAddVak('');setAddNiv([]);setAddToSchool(true);}} className="p-2 hover:bg-slate-100 rounded-lg"><Icon name="X" className="w-5 h-5"/></button>
+              <button onClick={() => {setModal(null);setShowNewUitg(false);setNewUitg('');setAddVak('');setNewVak('');setShowNewVak(false);setAddNiv([]);setAddToSchool(true);}} className="p-2 hover:bg-slate-100 rounded-lg"><Icon name="X" className="w-5 h-5"/></button>
             </div>
             <div className="space-y-4">
               <div>
@@ -735,13 +746,23 @@ function App() {
                 <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-blue-800 mb-1">Vak</label>
-                    <select value={addVak} onChange={e => {setAddVak(e.target.value);setAddNiv([]);setAddErr('');}} className="w-full p-3 border border-blue-200 rounded-xl bg-white">
+                    <select value={addVak} onChange={e => {
+                      setAddVak(e.target.value);
+                      setAddNiv([]);
+                      setShowNewVak(e.target.value === '__new__');
+                      setAddErr('');
+                    }} className="w-full p-3 border border-blue-200 rounded-xl bg-white">
                       <option value="">Kies vak...</option>
                       {vakken.map(v => <option key={v} value={v}>{v}</option>)}
+                      <option value="__new__">+ Nieuw vak toevoegen...</option>
                     </select>
                   </div>
                   
-                  {addVak && (
+                  {showNewVak && (
+                    <input value={newVak} onChange={e => {setNewVak(e.target.value);setAddErr('');}} placeholder="Naam nieuw vak" className="w-full p-3 border rounded-xl border-green-300 bg-green-50"/>
+                  )}
+                  
+                  {addVak && addVak !== '__new__' && (
                     <div>
                       <label className="block text-sm font-medium text-blue-800 mb-2">Niveau(s)</label>
                       <div className="flex flex-wrap gap-2">
@@ -767,12 +788,39 @@ function App() {
                       </button>
                     </div>
                   )}
+                  
+                  {showNewVak && newVak.trim() && (
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-2">Niveau(s) voor "{newVak}"</label>
+                      <div className="flex flex-wrap gap-2">
+                        {['p','k','l1','l2_6'].map(n => {
+                          const isSelected = addNiv.includes(n);
+                          const nkl = niveauKleuren[n] || ['bg-gray-100','text-gray-700'];
+                          return (
+                            <button key={n} type="button" onClick={() => {
+                              if(isSelected) setAddNiv(addNiv.filter(x => x !== n));
+                              else setAddNiv([...addNiv, n]);
+                              setAddErr('');
+                            }} className={`px-4 py-2 rounded-lg font-medium transition-all ${isSelected ? nkl[0]+' '+nkl[1]+' ring-2 ring-offset-1 ring-blue-400' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                              {niveauLabels[n]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <button type="button" onClick={() => {
+                        const allNivs = ['p','k','l1','l2_6'];
+                        setAddNiv(addNiv.length === allNivs.length ? [] : allNivs);
+                      }} className="text-xs text-blue-600 mt-2 hover:underline">
+                        {addNiv.length === 4 ? 'Deselecteer alle' : 'Selecteer alle niveaus'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
               
               {addErr && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm flex items-center gap-2"><Icon name="AlertCircle" className="w-4 h-4"/>{addErr}</div>}
               <button onClick={addNewMethode} className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl">
-                {addToSchool && addVak && addNiv.length > 0 ? 'Toevoegen en koppelen' : 'Toevoegen'}
+                {addToSchool && ((addVak && addVak !== '__new__') || (showNewVak && newVak.trim())) && addNiv.length > 0 ? 'Toevoegen en koppelen' : 'Toevoegen'}
               </button>
             </div>
           </div>
