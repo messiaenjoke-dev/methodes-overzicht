@@ -39,7 +39,7 @@ const getNiveaus = (v) => v==='schrift' ? ['l1','l2_3','l4_6'] : ['p','k','l1','
 const niveauOrder = {p:0,k:1,l1:2,l2_3:3,l4_6:4,l2_6:5};
 const niveauKleuren = {p:['bg-pink-100','text-pink-700'],k:['bg-orange-100','text-orange-700'],l1:['bg-violet-100','text-violet-700'],l2_6:['bg-indigo-100','text-indigo-700'],l2_3:['bg-sky-100','text-sky-700'],l4_6:['bg-slate-100','text-slate-700']};
 const vakKleuren = {Wiskunde:['bg-blue-50','border-blue-200','text-blue-700','bg-blue-600'],Taal:['bg-emerald-50','border-emerald-200','text-emerald-700','bg-emerald-600'],Spelling:['bg-amber-50','border-amber-200','text-amber-700','bg-amber-500'],Schrift:['bg-teal-50','border-teal-200','text-teal-700','bg-teal-600'],Frans:['bg-pink-50','border-pink-200','text-pink-700','bg-pink-500'],Wero:['bg-purple-50','border-purple-200','text-purple-700','bg-purple-600'],Godsdienst:['bg-rose-50','border-rose-200','text-rose-700','bg-rose-500'],'Begrijpend lezen':['bg-cyan-50','border-cyan-200','text-cyan-700','bg-cyan-600'],SOVA:['bg-orange-50','border-orange-200','text-orange-700','bg-orange-500'],Motoriek:['bg-lime-50','border-lime-200','text-lime-700','bg-lime-600']};
-const uitgKleuren = {'Van In':['bg-blue-50','border-blue-200','text-blue-700','bg-blue-600'],'Die Keure':['bg-emerald-50','border-emerald-200','text-emerald-700','bg-emerald-600'],Plantyn:['bg-purple-50','border-purple-200','text-purple-700','bg-purple-600'],Zwijsen:['bg-orange-50','border-orange-200','text-orange-700','bg-orange-500'],Onbekend:['bg-slate-50','border-slate-200','text-slate-700','bg-slate-500']};
+const uitgKleuren = {'Van In':['bg-blue-50','border-blue-200','text-blue-700','bg-blue-600'],'Die Keure':['bg-emerald-50','border-emerald-200','text-emerald-700','bg-emerald-600'],Plantyn:['bg-purple-50','border-purple-200','text-purple-700','bg-purple-600'],Zwijsen:['bg-orange-50','border-orange-200','text-orange-700','bg-orange-500'],'Eigen Methode':['bg-yellow-50','border-yellow-200','text-yellow-700','bg-yellow-500'],Onbekend:['bg-slate-50','border-slate-200','text-slate-700','bg-slate-500']};
 const defMU = {"Reken Maar":"Van In",Katapult:"Die Keure",Wiskanjers:"Plantyn",Kadet:"Die Keure","Veilig leren lezen":"Zwijsen",Talent:"Van In",Confetti:"Die Keure","Dag Jules":"Zwijsen","Tijd voor taal accent":"Van In","Talent+":"Van In",Taalkanjers:"Plantyn",Pistache:"Plantyn",Verrekijker:"Die Keure",Labo:"Die Keure",Tekstduikers:"Van In",Nieuwsbegrip:"CED-Groep",Wouw:"Die Keure",Wereldkanjers:"Plantyn",Mikado:"Plantyn",Ankers:"Van In","Tuin van Heden":"Die Keure","Sterren aan de hemel":"Plantyn","Jezus leeft":"Licap",TOV:"Licap","Land in zicht":"Plantyn","De Geluksvogels":"Lannoo","Kat en Hond":"Zwijsen","Loeloe en Pompom":"Zwijsen","Cas en Lisa":"Die Keure",Junglemaatjes:"Die Keure",Cirkelen:"ABIMO",Krullenbol:"Die Keure",Karakter:"Van In",Zouff:"Van In","Ik lees met Hup":"Malmberg",Kwartierlezen:"Malmberg",Luna:"Die Keure","Dag LoeLoe":"Zwijsen","Dag Pompom":"Zwijsen",Flonflon:"Zwijsen",Rekensprong:"Die Keure"};
 
 function emptyV() {
@@ -214,7 +214,7 @@ function App() {
 
   const cur = data[jaar];
   const mList = useMemo(() => Object.keys(mu).sort(), [mu]);
-  const uList = useMemo(() => [...new Set(Object.values(mu))].sort(), [mu]);
+  const uList = useMemo(() => [...new Set([...Object.values(mu), 'Eigen Methode'])].sort(), [mu]);
 
   // Merge helper
   const mergeData = (p) => {
